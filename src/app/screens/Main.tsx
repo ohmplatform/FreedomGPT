@@ -51,14 +51,16 @@ export default function Main() {
         setMessageFetching(true);
         //@ts-ignore
         setMessages((prev) => {
-          prev[prev.length - 1].message = res.data.response;
+          prev[prev.length - 1].message = JSON.stringify(res.data.response);
           return [...prev];
         });
       })
       .catch((err) => {
+        setMessageFetching(true);
         //@ts-ignore
         setMessages((prev) => {
-          prev[prev.length - 1].message = "Sorry, I cannot understand you";
+          prev[prev.length - 1].message =
+            '"I am unable to get you the desired result, please try again"';
           return [...prev];
         });
       });
@@ -113,8 +115,7 @@ export default function Main() {
           >
             <div
               style={{
-                width: "50%",
-                overflowY: "scroll",
+                width: "100%",
               }}
               className="initial_loader_wrapper"
             >

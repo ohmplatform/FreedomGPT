@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BOTTOMTEXT } from "../constants/constants";
 import { useMessageFetching } from "../context/MessageFetch";
 import { send } from "./Icons";
@@ -168,7 +168,7 @@ export default function Input({
           onClick={stopFetching}
           style={{
             position: "absolute",
-            bottom: "12vh",
+            bottom: "18vh",
             height: "35px",
             display: "flex",
             alignItems: "center",

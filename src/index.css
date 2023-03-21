@@ -1,17 +1,16 @@
-/* body {
+body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
   margin: auto;
   max-width: 38rem;
-  padding: 2rem;
-} */
+}
 
-/* * {
+* {
   margin: 0;
   padding: 0;
   font-family: "Questrial", sans-serif;
   line-break: auto;
-} */
+}
 
 body {
   background-color: #343541;
@@ -51,7 +50,7 @@ body {
   }
 }
 
-@media screen and (max-width: 731px) {
+@media screen and (max-width: 1000px) {
   .loader_columns {
     flex-direction: column !important;
     align-items: center;

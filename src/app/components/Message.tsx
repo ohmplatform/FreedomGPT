@@ -1,7 +1,9 @@
 import { MessageType } from "../types/types";
 import DisplayWordsOneByOne from "./DisplayWordsOneByOne";
 
-export default function Message({ user, message }: MessageType) {
+export default function Message({ user, message, id }: MessageType) {
+  const trimmedMessage = message.trim().split(" ");
+
   return (
     <div
       style={{
@@ -22,7 +24,7 @@ export default function Message({ user, message }: MessageType) {
           display: "flex",
           flexDirection: "row",
           alignItems: "flex-start",
-          width: "50%",
+          width: "100%",
           alignSelf: "center",
         }}
       >
@@ -41,7 +43,7 @@ export default function Message({ user, message }: MessageType) {
                 marginTop: "-10px",
                 marginLeft: "8px",
               }}
-              src={"static://assets/freedom.png"}
+              src={"assets/freedom.png"}
               alt=""
             />
           ) : (
@@ -67,9 +69,9 @@ export default function Message({ user, message }: MessageType) {
           {user ? (
             message.trim()
           ) : (
-            <DisplayWordsOneByOne words={message.trim().split(" ")} />
+            <DisplayWordsOneByOne words={trimmedMessage} id={id} />
           )}
-        </div>{" "}
+        </div>
       </div>
     </div>
   );
