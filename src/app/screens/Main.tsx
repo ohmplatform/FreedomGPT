@@ -56,6 +56,8 @@ export default function Main() {
             prev[prev.length - 1].message = response;
             return [...prev];
           });
+
+          console.log(JSON.stringify(response));
         }
       }
 

@@ -1,12 +1,16 @@
 import { useMessageFetching } from "../context/MessageFetch";
-import fixTextFormatting from "../helper/textFormat";
 import { MessageType } from "../types/types";
 
 const Reply = ({ message, id }: { message: string; id: string }) => {
   const { messageFetching, messages } = useMessageFetching();
   return (
     <p>
-      {fixTextFormatting(message.trim())}
+      <div
+        dangerouslySetInnerHTML={{ __html: message }}
+        style={{
+          whiteSpace: "pre-wrap",
+        }}
+      />
 
       {messageFetching && messages[messages.length - 1].id === id && (
         <span

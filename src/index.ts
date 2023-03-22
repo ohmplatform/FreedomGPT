@@ -49,15 +49,12 @@ io.on("connection", (socket) => {
       console.log("M2", program.pid);
 
       program.stdout.on("data", (data) => {
-        const abc = data.toString("utf8").trim();
+        const abc = data.toString("utf8");
 
-        console.log(abc);
-        console.log(data);
-
-        let output = data.toString("utf8").trim();
+        let output = data.toString("utf8");
         // console.log(output);
         output = output.replace(">", "");
-        const response = { result: "success", output: output + " " };
+        const response = { result: "success", output: output };
         socket.emit("response", response);
 
         if (output.includes("message__end")) {
