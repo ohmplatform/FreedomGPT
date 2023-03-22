@@ -48,17 +48,15 @@ export default function Main() {
       );
 
       if (messages.length > 0) {
-        if (justText != "�" || justText != ":)") {
-          setResponse((prevResponse) => prevResponse + justText);
-          setFetchedMessages(response);
-          // //@ts-ignore
-          setMessages((prev) => {
-            prev[prev.length - 1].message = response;
-            return [...prev];
-          });
+        setResponse((prevResponse) => prevResponse + justText);
+        setFetchedMessages(response);
+        // //@ts-ignore
+        setMessages((prev) => {
+          prev[prev.length - 1].message = response;
+          return [...prev];
+        });
 
-          console.log(JSON.stringify(response));
-        }
+        console.log(JSON.stringify(response));
       }
 
       //  if no data is returned console log the message complete

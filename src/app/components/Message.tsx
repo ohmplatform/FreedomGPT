@@ -3,10 +3,14 @@ import { MessageType } from "../types/types";
 
 const Reply = ({ message, id }: { message: string; id: string }) => {
   const { messageFetching, messages } = useMessageFetching();
+
+  // remove the first 2 letter from the message
+  const trimmedMessage = message.slice(2);
+
   return (
     <p>
       <div
-        dangerouslySetInnerHTML={{ __html: message }}
+        dangerouslySetInnerHTML={{ __html: trimmedMessage }}
         style={{
           whiteSpace: "pre-wrap",
         }}
