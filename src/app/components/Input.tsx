@@ -16,11 +16,17 @@ export default function Input({
   setInput,
   inputRef,
 }: InputProps) {
-  const { messageFetching, setDisableinput, disableinput, stopFetching } =
-    useMessageFetching();
+  const {
+    messageFetching,
+    setDisableinput,
+    disableinput,
+    stopFetching,
+    setMessageFetching,
+  } = useMessageFetching();
 
   function handleInputSubmit() {
     setDisableinput(true);
+    setMessageFetching(true);
     if (input == "") return;
     askQuestion(input);
     setInput("");

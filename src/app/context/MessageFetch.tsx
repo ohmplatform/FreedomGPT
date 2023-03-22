@@ -44,7 +44,7 @@ const MessageFetchProvider = ({ children }: { children: React.ReactNode }) => {
     setDisableinput(false);
 
     setMessages((prev) => {
-      prev[prev.length - 1].message = fetchedMessages + '"';
+      prev[prev.length - 1].message = fetchedMessages;
       return [...prev];
     });
   };

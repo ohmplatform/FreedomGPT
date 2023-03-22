@@ -1,17 +1,13 @@
-import axios from "axios";
 import { useEffect, useRef, useState } from "react";
+import io from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 import InitialLoader from "../components/InitialLoader";
 import Input from "../components/Input";
 import Messages from "../components/Messages";
 import { useMessageFetching } from "../context/MessageFetch";
 import { MessageType } from "../types/types";
-import io from "socket.io-client";
 
 const socket = io("http://localhost:3001");
-
-// const SERVERURL =
-//   "https://ndwzsld45yxntt4guuji3e7gy40ubbbo.lambda-url.us-east-1.on.aws/";
 
 export default function Main() {
   const [input, setInput] = useState<string>("");
@@ -22,6 +18,7 @@ export default function Main() {
     setMessages,
     disableinput,
     setDisableinput,
+    setFetchedMessages,
   } = useMessageFetching();
 
   const inputRef = useRef<HTMLDivElement>(null);
@@ -51,26 +48,32 @@ export default function Main() {
       );
 
       if (messages.length > 0) {
-        setMessageFetching(true);
-
         if (justText != "�" || justText != ":)") {
           setResponse((prevResponse) => prevResponse + justText);
+          setFetchedMessages(response);
           // //@ts-ignore
           setMessages((prev) => {
             prev[prev.length - 1].message = response;
             return [...prev];
           });
-          // socket.emit("close");
         }
-
-        // setResponse((prevResponse) => prevResponse + justText);
       }
+
+      //  if no data is returned console log the message complete
+      if (result === "\n>") {
+        console.log("message complete");
+      }
+    });
+
+    socket.on("chatend", () => {
+      socket.emit("chatstart");
+      setDisableinput(false);
+      setMessageFetching(false);
     });
 
     return () => {
       socket.off("response");
-      setMessageFetching(false);
-      setDisableinput(false);
+      socket.off("chatend");
     };
   }, [messages]);
 
@@ -78,15 +81,6 @@ export default function Main() {
     const senderID = uuidv4();
     const replyID = uuidv4();
 
-    // if (messages.length > 0) {
-    //   //@ts-ignore
-    //   setMessages((prev) => {
-    //     prev[prev.length - 1].message = response;
-    //     return [...prev];
-    //   });
-
-    //   setResponse("");
-    // }
     setResponse("");
 
     addMessage({
@@ -103,8 +97,6 @@ export default function Main() {
       id: replyID,
       replyId: senderID,
     });
-
-    //@ts-ignore
   };
 
   return (

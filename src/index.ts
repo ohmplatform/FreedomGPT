@@ -24,7 +24,7 @@ expressapp.use(cors());
 let connectedClient: any = null;
 
 const EXPRESSPORT = 3001;
-const CHAT_APP_LOCATION = "/Users/jay/Desktop/alp/chat_mac";
+const CHAT_APP_LOCATION = "/Users/jay/Documents/freedom/ancd/alpaca.cpp/chat";
 /* Make sure to use the actual path to your app, not the relative path ( )
     Donot use ../ or ./
 */
@@ -36,24 +36,38 @@ io.on("connection", (socket) => {
 
     socket.join("myRoom");
 
-    const program = spawn(CHAT_APP_LOCATION, []);
+    let program = spawn(CHAT_APP_LOCATION, []);
 
-    socket.on("message", (message) => {
-      program.stdin.write(message + "\n");
+    socket.on("chatstart", () => {
+      program = spawn(CHAT_APP_LOCATION, []);
+      console.log("S2", program.pid);
     });
 
-    // socket.on("close", () => {
-    //   program.kill();
-    //   console.log("Killed", program.pid);
-    //   program = spawn("/Users/jay/Desktop/alp/chat_mac", []);
-    //   console.log("start", program.pid);
-    // });
+    socket.on("message", (message) => {
+      console.log("M1", program.pid);
+      program.stdin.write(message + "\n");
+      console.log("M2", program.pid);
 
-    program.stdout.on("data", (data) => {
-      let output = data.toString().trim();
-      output = output.replace(">", "");
-      const response = { result: "success", output: output + " " };
-      socket.emit("response", response);
+      program.stdout.on("data", (data) => {
+        const abc = data.toString("utf8").trim();
+
+        console.log(abc);
+        console.log(data);
+
+        let output = data.toString("utf8").trim();
+        // console.log(output);
+        output = output.replace(">", "");
+        const response = { result: "success", output: output + " " };
+        socket.emit("response", response);
+
+        if (output.includes("message__end")) {
+          console.log("done");
+          console.log("E1", program.pid);
+          program.kill();
+          program = null;
+          socket.emit("chatend");
+        }
+      });
     });
 
     socket.on("disconnect", () => {

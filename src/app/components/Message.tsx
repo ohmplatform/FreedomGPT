@@ -1,9 +1,28 @@
+import { useMessageFetching } from "../context/MessageFetch";
+import fixTextFormatting from "../helper/textFormat";
 import { MessageType } from "../types/types";
-import DisplayWordsOneByOne from "./DisplayWordsOneByOne";
+
+const Reply = ({ message, id }: { message: string; id: string }) => {
+  const { messageFetching, messages } = useMessageFetching();
+  return (
+    <p>
+      {fixTextFormatting(message.trim())}
+
+      {messageFetching && messages[messages.length - 1].id === id && (
+        <span
+          className={`cursor`}
+          style={{
+            marginLeft: "5px",
+          }}
+        >
+          ||
+        </span>
+      )}
+    </p>
+  );
+};
 
 export default function Message({ user, message, id }: MessageType) {
-  const trimmedMessage = message.trim().split(" ");
-
   return (
     <div
       style={{
@@ -64,10 +83,13 @@ export default function Message({ user, message, id }: MessageType) {
             width: "100%",
           }}
         >
-          {user
-            ? message.trim()
-            : // <DisplayWordsOneByOne words={trimmedMessage} id={id} />
-              message.trim()}
+          {user ? (
+            message.trim()
+          ) : (
+            // <DisplayWordsOneByOne words={trimmedMessage} id={id} />
+            // message.trim()
+            <Reply message={message} id={id} />
+          )}
         </div>
       </div>
     </div>
