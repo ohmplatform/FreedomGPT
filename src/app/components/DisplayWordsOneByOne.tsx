@@ -26,7 +26,6 @@ function DisplayWordsOneByOne({
       }
 
       setCurrentIndex((prevIndex) => prevIndex + 1);
-      //@ts-ignore
     }, 100);
 
     return () => clearTimeout(timeoutId);

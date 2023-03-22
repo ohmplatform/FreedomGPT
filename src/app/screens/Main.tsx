@@ -25,10 +25,14 @@ export default function Main() {
 
   function addMessage(msg: MessageType) {
     if (msg.user) {
-      //@ts-ignore
-      setMessages((prev) => [...prev, msg]);
+      setMessages(
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        (prev) => [...prev, msg]
+      );
     } else {
-      //@ts-ignore
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       setMessages((prev) => [...prev, msg]);
     }
   }
@@ -42,7 +46,9 @@ export default function Main() {
   useEffect(() => {
     socket.on("response", (data) => {
       const result = data.output;
+
       const justText = result.replace(
+        // eslint-disable-next-line no-control-regex
         /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
         ""
       );
@@ -50,7 +56,9 @@ export default function Main() {
       if (messages.length > 0) {
         setResponse((prevResponse) => prevResponse + justText);
         setFetchedMessages(response);
-        // //@ts-ignore
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         setMessages((prev) => {
           prev[prev.length - 1].message = response;
           return [...prev];

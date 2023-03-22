@@ -16,14 +16,20 @@ export interface MessageFetch {
 
 export const MessageFetchContext = createContext({
   messageFetching: false,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   setMessageFetching: (value: boolean) => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   toggleMessageFetching: () => {},
   messages: [] as MessageType[],
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   setMessages: (value: MessageType[]) => {},
   disableinput: false,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   setDisableinput: (value: boolean) => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   setFetchedMessages: (value: string) => {},
   fetchedMessages: "",
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   stopFetching: () => {},
 });
 
