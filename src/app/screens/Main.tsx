@@ -6,14 +6,23 @@ import Input from "../components/Input";
 import Messages from "../components/Messages";
 import { useMessageFetching } from "../context/MessageFetch";
 import { MessageType } from "../types/types";
+import io from "socket.io-client";
 
-const SERVERURL =
-  "https://ndwzsld45yxntt4guuji3e7gy40ubbbo.lambda-url.us-east-1.on.aws/";
+const socket = io("http://localhost:3001");
+
+// const SERVERURL =
+//   "https://ndwzsld45yxntt4guuji3e7gy40ubbbo.lambda-url.us-east-1.on.aws/";
 
 export default function Main() {
   const [input, setInput] = useState<string>("");
-  const { setMessageFetching, messages, setMessages, disableinput } =
-    useMessageFetching();
+  const [response, setResponse] = useState("");
+  const {
+    setMessageFetching,
+    messages,
+    setMessages,
+    disableinput,
+    setDisableinput,
+  } = useMessageFetching();
 
   const inputRef = useRef<HTMLDivElement>(null);
 
@@ -33,37 +42,60 @@ export default function Main() {
     }
   }, [inputRef.current, disableinput]);
 
+  useEffect(() => {
+    socket.on("response", (data) => {
+      const result = data.output;
+      const justText = result.replace(
+        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+        ""
+      );
+
+      if (messages.length > 0) {
+        setMessageFetching(true);
+
+        if (justText != "�" || justText != ":)") {
+          setResponse((prevResponse) => prevResponse + justText);
+          // //@ts-ignore
+          setMessages((prev) => {
+            prev[prev.length - 1].message = response;
+            return [...prev];
+          });
+          // socket.emit("close");
+        }
+
+        // setResponse((prevResponse) => prevResponse + justText);
+      }
+    });
+
+    return () => {
+      socket.off("response");
+      setMessageFetching(false);
+      setDisableinput(false);
+    };
+  }, [messages]);
+
   const askQuestion = (message: string) => {
     const senderID = uuidv4();
     const replyID = uuidv4();
+
+    // if (messages.length > 0) {
+    //   //@ts-ignore
+    //   setMessages((prev) => {
+    //     prev[prev.length - 1].message = response;
+    //     return [...prev];
+    //   });
+
+    //   setResponse("");
+    // }
+    setResponse("");
 
     addMessage({
       message: message,
       user: true,
       id: senderID,
     });
-    axios
-      .post(SERVERURL, {
-        query: message,
-        max_length: 256,
-      })
-      .then((res) => {
-        setMessageFetching(true);
-        //@ts-ignore
-        setMessages((prev) => {
-          prev[prev.length - 1].message = JSON.stringify(res.data.response);
-          return [...prev];
-        });
-      })
-      .catch((err) => {
-        setMessageFetching(true);
-        //@ts-ignore
-        setMessages((prev) => {
-          prev[prev.length - 1].message =
-            '"I am unable to get you the desired result, please try again"';
-          return [...prev];
-        });
-      });
+
+    socket.emit("message", message);
 
     addMessage({
       message: "",
@@ -71,6 +103,8 @@ export default function Main() {
       id: replyID,
       replyId: senderID,
     });
+
+    //@ts-ignore
   };
 
   return (

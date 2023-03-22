@@ -36,16 +36,14 @@ export default function Message({ user, message, id }: MessageType) {
           }}
         >
           {user ? (
-            <img
+            <p
               style={{
-                borderRadius: "3px",
-                width: "32px",
-                marginTop: "-10px",
-                marginLeft: "8px",
+                fontSize: "40px",
+                marginTop: "-15px",
               }}
-              src={"assets/freedom.png"}
-              alt=""
-            />
+            >
+              🗣️
+            </p>
           ) : (
             <p
               style={{
@@ -66,11 +64,10 @@ export default function Message({ user, message, id }: MessageType) {
             width: "100%",
           }}
         >
-          {user ? (
-            message.trim()
-          ) : (
-            <DisplayWordsOneByOne words={trimmedMessage} id={id} />
-          )}
+          {user
+            ? message.trim()
+            : // <DisplayWordsOneByOne words={trimmedMessage} id={id} />
+              message.trim()}
         </div>
       </div>
     </div>
