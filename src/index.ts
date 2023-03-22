@@ -1,11 +1,10 @@
 import { app, BrowserWindow, session } from "electron";
 import path from "path";
-
+import { spawn } from "child_process";
+import cors from "cors";
 import express from "express";
 import http from "http";
-import cors from "cors";
 import { Server } from "socket.io";
-import { spawn } from "child_process";
 
 const expressapp = express();
 const server = http.createServer(expressapp);
@@ -24,7 +23,11 @@ expressapp.use(cors());
 let connectedClient: any = null;
 
 const EXPRESSPORT = 3001;
-const CHAT_APP_LOCATION = "/Users/jay/Documents/freedom/ancd/alpaca.cpp/chat";
+const CHAT_APP_LOCATION = app.getAppPath() + "/src/models/chat";
+const MODEL_LOCATION = app.getAppPath() + "/src/models/ggml-alpaca-7b-q4.bin";
+
+console.log(CHAT_APP_LOCATION + " abcd " + MODEL_LOCATION);
+
 /* Make sure to use the actual path to your app, not the relative path ( )
     Donot use ../ or ./
 */
@@ -32,14 +35,14 @@ io.on("connection", (socket) => {
   if (!connectedClient) {
     connectedClient = socket;
 
-    console.log("A user connected");
+    console.log("A user connectedd");
 
     socket.join("myRoom");
 
-    let program = spawn(CHAT_APP_LOCATION, []);
+    let program = spawn(CHAT_APP_LOCATION, ["-m", MODEL_LOCATION]);
 
     socket.on("chatstart", () => {
-      program = spawn(CHAT_APP_LOCATION, []);
+      program = spawn(CHAT_APP_LOCATION, ["-m", MODEL_LOCATION]);
       console.log("S2", program.pid);
     });
 
@@ -87,6 +90,7 @@ const createWindow = (): void => {
     width: 1080,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      devTools: false,
     },
   });
 
@@ -101,20 +105,6 @@ const createWindow = (): void => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", () => {
-  // Customize protocol to handle static resource.
-  session.defaultSession.protocol.registerFileProtocol(
-    "static",
-    (request, callback) => {
-      const fileUrl = request.url.replace("static://", "");
-      const filePath = path.join(
-        app.getAppPath(),
-        ".webpack/renderer",
-        fileUrl
-      );
-      callback(filePath);
-    }
-  );
-
   createWindow();
 });
 
