@@ -1,7 +1,6 @@
-import { app, BrowserWindow, session } from "electron";
-import path from "path";
 import { spawn } from "child_process";
 import cors from "cors";
+import { app, BrowserWindow, globalShortcut } from "electron";
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
@@ -22,11 +21,9 @@ expressapp.use(cors());
 
 let connectedClient: any = null;
 
-const EXPRESSPORT = 3001;
+const EXPRESSPORT = 8889;
 const CHAT_APP_LOCATION = app.getAppPath() + "/src/models/chat";
 const MODEL_LOCATION = app.getAppPath() + "/src/models/ggml-alpaca-7b-q4.bin";
-
-console.log(CHAT_APP_LOCATION + " abcd " + MODEL_LOCATION);
 
 /* Make sure to use the actual path to your app, not the relative path ( )
     Donot use ../ or ./
@@ -52,7 +49,7 @@ io.on("connection", (socket) => {
       console.log("M2", program.pid);
 
       program.stdout.on("data", (data) => {
-        const abc = data.toString("utf8");
+        // const abc = data.toString("utf8");
 
         let output = data.toString("utf8");
         // console.log(output);
@@ -90,7 +87,6 @@ const createWindow = (): void => {
     width: 1080,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-      devTools: false,
     },
   });
 
@@ -115,6 +111,16 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+app.on("browser-window-focus", function () {
+  globalShortcut.register("CommandOrControl+R", () => {
+    console.log("CommandOrControl+R is pressed: Shortcut Disabled");
+  });
+});
+
+app.on("browser-window-blur", function () {
+  globalShortcut.unregister("CommandOrControl+R");
 });
 
 app.on("activate", () => {

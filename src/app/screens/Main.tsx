@@ -7,7 +7,7 @@ import Messages from "../components/Messages";
 import { useMessageFetching } from "../context/MessageFetch";
 import { MessageType } from "../types/types";
 
-const socket = io("http://localhost:3001");
+const socket = io("http://localhost:8889");
 
 export default function Main() {
   const [input, setInput] = useState<string>("");
@@ -64,7 +64,7 @@ export default function Main() {
           return [...prev];
         });
 
-        console.log(JSON.stringify(response));
+        // console.log(JSON.stringify(response));
       }
 
       //  if no data is returned console log the message complete

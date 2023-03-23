@@ -8,25 +8,38 @@ const Reply = ({ message, id }: { message: string; id: string }) => {
   const trimmedMessage = message.slice(2);
 
   return (
-    <p>
-      <div
-        dangerouslySetInnerHTML={{ __html: trimmedMessage }}
-        style={{
-          whiteSpace: "pre-wrap",
-        }}
-      />
-
-      {messageFetching && messages[messages.length - 1].id === id && (
-        <span
-          className={`cursor`}
+    <div>
+      {!messageFetching && messages[messages.length - 1].id === id && (
+        <div
+          dangerouslySetInnerHTML={{ __html: trimmedMessage }}
           style={{
-            marginLeft: "5px",
+            whiteSpace: "pre-wrap",
           }}
-        >
-          ||
-        </span>
+        />
       )}
-    </p>
+
+      {messages[messages.length - 1].id !== id && (
+        <div
+          dangerouslySetInnerHTML={{ __html: trimmedMessage }}
+          style={{
+            whiteSpace: "pre-wrap",
+          }}
+        />
+      )}
+      {messageFetching && messages[messages.length - 1].id === id && (
+        <p>
+          {trimmedMessage}
+          <span
+            className={`cursor`}
+            style={{
+              marginLeft: "5px",
+            }}
+          >
+            ||
+          </span>
+        </p>
+      )}
+    </div>
   );
 };
 
