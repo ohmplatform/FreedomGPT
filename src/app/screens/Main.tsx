@@ -19,6 +19,7 @@ export default function Main() {
     disableinput,
     setDisableinput,
     setFetchedMessages,
+    messageFetching,
   } = useMessageFetching();
 
   const inputRef = useRef<HTMLDivElement>(null);
@@ -55,14 +56,17 @@ export default function Main() {
 
       if (messages.length > 0) {
         setResponse((prevResponse) => prevResponse + justText);
-        setFetchedMessages(response);
 
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        setMessages((prev) => {
-          prev[prev.length - 1].message = response;
-          return [...prev];
-        });
+        if (messageFetching) {
+          setFetchedMessages(response);
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          setMessages((prev) => {
+            prev[prev.length - 1].message = response;
+            return [...prev];
+          });
+        }
 
         // console.log(JSON.stringify(response));
       }
@@ -170,6 +174,7 @@ export default function Main() {
             input={input}
             setInput={setInput}
             inputRef={inputRef}
+            socket={socket}
           />
         </div>
       </div>

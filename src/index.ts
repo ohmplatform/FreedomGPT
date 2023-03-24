@@ -5,7 +5,6 @@ import { app, BrowserWindow } from "electron";
 import express from "express";
 import fs from "fs";
 import http from "http";
-import path from "path";
 import { Server } from "socket.io";
 
 const expressapp = express();
@@ -24,13 +23,16 @@ expressapp.use(cors());
 
 const EXPRESSPORT = 8889;
 const CHAT_APP_LOCATION = app.getAppPath() + "/src/models/chat";
+console.log("ChatAPp" + CHAT_APP_LOCATION);
 const homeDir = app.getPath("home");
-const MODEL_LOCATION = path.join(homeDir, "FreedomGPT");
+console.log("Home" + homeDir);
+const MODEL_LOCATION = homeDir + "/FreedomGPT";
+console.log("MODEL_LOCATION" + MODEL_LOCATION);
+const FILEPATH = MODEL_LOCATION + "/ggml-alpaca-7b-q4.bin";
+console.log("FILEPATH" + FILEPATH);
 const MODEL_URL =
   "https://huggingface.co/Sosaka/Alpaca-native-4bit-ggml/resolve/main/ggml-alpaca-7b-q4.bin";
 const FILESIZE = 4212727017;
-
-const FILEPATH = path.join(MODEL_LOCATION, "ggml-alpaca-7b-q4.bin");
 
 const downloadFile = async (
   url: string,
@@ -208,6 +210,13 @@ io.on("connection", (socket) => {
   socket.on("chatstart", () => {
     program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH]);
     console.log("S2", program.pid);
+  });
+
+  socket.on("stopResponding", () => {
+    console.log("E1", program.pid);
+    program.kill();
+    program = null;
+    socket.emit("chatend");
   });
 
   socket.on("message", (message) => {

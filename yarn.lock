@@ -2422,11 +2422,6 @@ electron-installer-redhat@^3.2.0:
     word-wrap "^1.2.3"
     yargs "^16.0.2"
 
-electron-is-packaged@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/electron-is-packaged/-/electron-is-packaged-1.0.2.tgz#d4efc0dc14991ab981de65f52271badf92323c7e"
-  integrity sha512-JZpV9QgVsehop7tm3KDll2/iJ9K3e7mL+jm6E3gA96zurIhxv3FZ0kxJK0eGL9c3SYORU1rN+/q2Ia8/v62Pjw==
-
 electron-packager@^17.1.1:
   version "17.1.1"
   resolved "https://registry.yarnpkg.com/electron-packager/-/electron-packager-17.1.1.tgz#f156fc63d3a66f4e902e4b42992550a172982d59"
@@ -2451,13 +2446,6 @@ electron-packager@^17.1.1:
     resolve "^1.1.6"
     semver "^7.1.3"
     yargs-parser "^21.1.1"
-
-electron-root-path@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/electron-root-path/-/electron-root-path-1.1.0.tgz#a413b1ad50cbe09cb2b723ea1aacdebad47622f8"
-  integrity sha512-hx9BU0cS36XV4EmIrHhYObADq2gMPB96dPjZ71ROfIbVp56KC058dDR38YY2xaB3M94ATa0w6bWyDBBYrKsYKw==
-  dependencies:
-    electron-is-packaged "^1.0.2"
 
 electron-squirrel-startup@^1.0.0:
   version "1.0.0"

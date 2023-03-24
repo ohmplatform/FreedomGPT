@@ -30,7 +30,7 @@ export const MessageFetchContext = createContext({
   setFetchedMessages: (value: string) => {},
   fetchedMessages: "",
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  stopFetching: () => {},
+  stopFetching: (message: string) => {},
 });
 
 export const useMessageFetching = () => React.useContext(MessageFetchContext);
@@ -45,7 +45,8 @@ const MessageFetchProvider = ({ children }: { children: React.ReactNode }) => {
     setMessageFetching(!messageFetching);
   };
 
-  const stopFetching = () => {
+  const stopFetching = (socket: any) => {
+    socket.emit("stopResponding");
     setMessageFetching(false);
     setDisableinput(false);
 
