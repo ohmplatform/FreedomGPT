@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import cors from "cors";
-import { app, BrowserWindow, globalShortcut } from "electron";
+import { app, BrowserWindow } from "electron";
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
@@ -19,8 +19,6 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
 expressapp.use(cors());
 
-let connectedClient: any = null;
-
 const EXPRESSPORT = 8889;
 const CHAT_APP_LOCATION = app.getAppPath() + "/src/models/chat";
 const MODEL_LOCATION = app.getAppPath() + "/src/models/ggml-alpaca-7b-q4.bin";
@@ -29,51 +27,48 @@ const MODEL_LOCATION = app.getAppPath() + "/src/models/ggml-alpaca-7b-q4.bin";
     Donot use ../ or ./
 */
 io.on("connection", (socket) => {
-  if (!connectedClient) {
-    connectedClient = socket;
+  console.log("A user connecteddd");
 
-    console.log("A user connectedd");
+  let program = spawn(CHAT_APP_LOCATION, ["-m", MODEL_LOCATION]);
 
-    socket.join("myRoom");
+  socket.on("chatstart", () => {
+    program = spawn(CHAT_APP_LOCATION, ["-m", MODEL_LOCATION]);
+    console.log("S2", program.pid);
+  });
 
-    let program = spawn(CHAT_APP_LOCATION, ["-m", MODEL_LOCATION]);
+  socket.on("message", (message) => {
+    console.log("M1", program.pid);
+    program.stdin.write(message + "\n");
+    console.log("M2", program.pid);
 
-    socket.on("chatstart", () => {
-      program = spawn(CHAT_APP_LOCATION, ["-m", MODEL_LOCATION]);
-      console.log("S2", program.pid);
+    program.stdout.on("data", (data) => {
+      // const abc = data.toString("utf8");
+
+      let output = data.toString("utf8");
+      // console.log(output);
+      output = output.replace(">", "");
+      const response = { result: "success", output: output };
+      socket.emit("response", response);
+
+      if (output.includes("message__end")) {
+        console.log("done");
+        console.log("E1", program.pid);
+        program.kill();
+        program = null;
+        socket.emit("chatend");
+      }
     });
+  });
 
-    socket.on("message", (message) => {
-      console.log("M1", program.pid);
-      program.stdin.write(message + "\n");
-      console.log("M2", program.pid);
-
-      program.stdout.on("data", (data) => {
-        // const abc = data.toString("utf8");
-
-        let output = data.toString("utf8");
-        // console.log(output);
-        output = output.replace(">", "");
-        const response = { result: "success", output: output };
-        socket.emit("response", response);
-
-        if (output.includes("message__end")) {
-          console.log("done");
-          console.log("E1", program.pid);
-          program.kill();
-          program = null;
-          socket.emit("chatend");
-        }
-      });
-    });
-
-    socket.on("disconnect", () => {
-      console.log("A user disconnected");
-    });
-  } else {
-    const response = { result: "error", output: "Only one user allowed" };
-    socket.emit("response", response);
-  }
+  socket.on("disconnect", () => {
+    console.log("A user disconnected");
+    program.kill();
+    program = null;
+  });
+  // } else {
+  //   const response = { result: "error", output: "Only one user allowed" };
+  //   socket.emit("response", response);
+  // }
 });
 
 server.listen(EXPRESSPORT, () =>
@@ -87,6 +82,7 @@ const createWindow = (): void => {
     width: 1080,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      devTools: false,
     },
   });
 
@@ -113,15 +109,15 @@ app.on("window-all-closed", () => {
   }
 });
 
-app.on("browser-window-focus", function () {
-  globalShortcut.register("CommandOrControl+R", () => {
-    console.log("CommandOrControl+R is pressed: Shortcut Disabled");
-  });
-});
+// app.on("browser-window-focus", function () {
+//   globalShortcut.register("CommandOrControl+R", () => {
+//     console.log("CommandOrControl+R is pressed: Shortcut Disabled");
+//   });
+// });
 
-app.on("browser-window-blur", function () {
-  globalShortcut.unregister("CommandOrControl+R");
-});
+// app.on("browser-window-blur", function () {
+//   globalShortcut.unregister("CommandOrControl+R");
+// });
 
 app.on("activate", () => {
   // On OS X it's common to re-create a window in the app when the
