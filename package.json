@@ -58,14 +58,5 @@
     "socket.io": "^4.6.1",
     "socket.io-client": "^4.6.1",
     "uuid": "^9.0.0"
-  },
-  "config": {
-    "forge": {
-      "packagerConfig": {
-        "extraResource": [
-          "./src/models"
-        ]
-      }
-    }
   }
 }
