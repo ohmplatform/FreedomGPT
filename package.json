@@ -2,10 +2,10 @@
   "name": "freedomgptapp",
   "productName": "freedomgptapp",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Our goal is to illustrate that AI Safety cannot be achieved through censorship. Let information flow freely, no matter how discomforting - because the truth shall set us free.",
   "main": ".webpack/main",
   "scripts": {
-    "start": "electron-forge start",
+    "start": "APP_DEV=true electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
@@ -46,6 +46,8 @@
     "typescript": "~4.5.4"
   },
   "dependencies": {
+    "@electron-forge/maker-dmg": "^6.0.5",
+    "@electron/osx-sign": "^1.0.4",
     "axios": "^1.3.4",
     "cors": "^2.8.5",
     "electron-squirrel-startup": "^1.0.0",

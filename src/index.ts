@@ -22,12 +22,21 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 expressapp.use(cors());
 
 const EXPRESSPORT = 8889;
-const CHAT_APP_LOCATION = app.getAppPath() + "/src/models/chat";
-console.log("ChatAPp" + CHAT_APP_LOCATION);
+const isDev: boolean = process.env.APP_DEV
+  ? process.env.APP_DEV.trim() == "true"
+  : false;
+
 const homeDir = app.getPath("home");
 console.log("Home" + homeDir);
+
 const MODEL_LOCATION = homeDir + "/FreedomGPT";
 console.log("MODEL_LOCATION" + MODEL_LOCATION);
+
+const CHAT_APP_LOCATION = isDev
+  ? app.getAppPath() + "/src/models/chat"
+  : process.resourcesPath + "/models/chat";
+console.log("ChatAPp" + CHAT_APP_LOCATION);
+
 const FILEPATH = MODEL_LOCATION + "/ggml-alpaca-7b-q4.bin";
 console.log("FILEPATH" + FILEPATH);
 const MODEL_URL =
@@ -177,9 +186,9 @@ const checkIfFileExists = async () => {
         loaderWindow.close();
       });
   } else {
-    console.log("File exists, but it is not the correct size");
     const mainFileSize = fs.statSync(FILEPATH).size;
     if (mainFileSize !== FILESIZE) {
+      console.log("File exists, but it is not the correct size");
       const loaderWindow = createLoaderWindow();
       if (fs.existsSync(MODEL_LOCATION)) {
         fs.rmdirSync(MODEL_LOCATION, { recursive: true });
@@ -196,10 +205,9 @@ const checkIfFileExists = async () => {
           console.log(err);
           loaderWindow.close();
         });
-    } else {
-      createWindow();
     }
   }
+  createWindow();
 };
 
 io.on("connection", (socket) => {
@@ -265,7 +273,7 @@ const createWindow = (): void => {
     width: 1080,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-      devTools: false,
+      devTools: true,
     },
   });
 
@@ -284,9 +292,7 @@ app.on("ready", () => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  app.quit();
 });
 
 // app.on("browser-window-focus", function () {
