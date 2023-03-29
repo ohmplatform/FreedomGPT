@@ -1,7 +1,8 @@
 import axios from "axios";
 import { spawn } from "child_process";
 import cors from "cors";
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
+import { autoUpdater } from "electron-updater";
 import express from "express";
 import fs from "fs";
 import http from "http";
@@ -77,10 +78,6 @@ const createLoaderWindow = (): BrowserWindow => {
     height: 1080,
     width: 1080,
     alwaysOnTop: true,
-    // show console
-    webPreferences: {
-      devTools: true,
-    },
   });
   loaderWindow.loadURL(
     `data:text/html,
@@ -362,26 +359,26 @@ const checkIfFileExists = async () => {
 };
 
 io.on("connection", (socket) => {
-  console.log("A user connecteddd");
+  // console.log("A user connecteddd");
 
   let program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH]);
 
   socket.on("chatstart", () => {
     program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH]);
-    console.log("S2", program.pid);
+    // console.log("S2", program.pid);
   });
 
   socket.on("stopResponding", () => {
-    console.log("E1", program.pid);
+    // console.log("E1", program.pid);
     program.kill();
     program = null;
     socket.emit("chatend");
   });
 
   socket.on("message", (message) => {
-    console.log("M1", program.pid);
+    // console.log("M1", program.pid);
     program.stdin.write(message + "\n");
-    console.log("M2", program.pid);
+    // console.log("M2", program.pid);
 
     program.stdout.on("data", (data) => {
       // const abc = data.toString("utf8");
@@ -393,8 +390,8 @@ io.on("connection", (socket) => {
       socket.emit("response", response);
 
       if (output.includes("message__end")) {
-        console.log("done");
-        console.log("E1", program.pid);
+        // console.log("done");
+        // console.log("E1", program.pid);
         program.kill();
         program = null;
         socket.emit("chatend");
@@ -403,7 +400,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("A user disconnected");
+    // console.log("A user disconnected");
     program.kill();
     program = null;
   });
@@ -424,12 +421,15 @@ const createWindow = (): void => {
     width: 1080,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-      devTools: true,
     },
   });
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+
+  mainWindow.once("ready-to-show", () => {
+    autoUpdater.checkForUpdatesAndNotify();
+  });
 };
 
 // This method will be called when Electron has finished
@@ -445,6 +445,59 @@ app.on("ready", () => {
 app.on("window-all-closed", () => {
   app.quit();
 });
+
+// autoUpdater.on("update-downloaded", (event, releaseNotes, releaseName) => {
+//   const dialogOpts = {
+//     type: "info",
+//     buttons: ["Restart", "Later"],
+//     title: "Update Available",
+//     message: process.platform === "win32" ? releaseNotes : releaseName,
+//     detail:
+//       "A new version has been downloaded. Restart the application to apply the updates.",
+//   };
+
+//   dialog.showMessageBox(dialogOpts).then((returnValue) => {
+//     if (returnValue.response === 0) autoUpdater.quitAndInstall();
+//   });
+// });
+
+autoUpdater.on("update-available", () => {
+  // mainWindow.webContents.send("update_available");
+
+  // show a dialog to the user
+  const dialogOpts = {
+    type: "info",
+    buttons: ["Restart", "Later"],
+    title: "Update Available",
+    message:
+      "A new version has been downloaded. Restart the application to apply the updates.",
+    detail:
+      "A new version has been downloaded. Restart the application to apply the updates.",
+  };
+
+  dialog.showMessageBox(dialogOpts).then((returnValue) => {
+    if (returnValue.response === 0) autoUpdater.quitAndInstall();
+  });
+});
+
+// autoUpdater.on("update-downloaded", () => {
+//   // mainWindow.webContents.send("update_downloaded");
+//   // show a dialog to the user
+//   const dialogOpts = {
+//     type: "info",
+//     buttons: ["Restart", "Later"],
+//     title: "Update Available",
+//     message: "A new version has been downloaded. Restart the application to apply the updates.",
+//     detail:
+
+//       "A new version has been downloaded. Restart the application to apply the updates.",
+//   };
+
+//   dialog.showMessageBox(dialogOpts).then((returnValue) => {
+//     if (returnValue.response === 0) autoUpdater.quitAndInstall();
+//   }
+
+// });
 
 // app.on("browser-window-focus", function () {
 //   globalShortcut.register("CommandOrControl+R", () => {

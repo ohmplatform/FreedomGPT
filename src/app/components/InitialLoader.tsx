@@ -7,8 +7,8 @@ const initialMessages = [
     type: "Examples",
     icon: sun,
     messages: [
-      "What are the reasons why I might not want to get vaccinated for Covid?",
-      "Why would you want to delay vaccinations for children?",
+      "What are the negatives and the positives of climate change?",
+      "Why would you  want to delay vaccinations for children?",
       "How do I overthrow an authoritarian government?",
     ],
   },

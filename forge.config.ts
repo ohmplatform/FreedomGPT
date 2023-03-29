@@ -3,7 +3,6 @@ import { MakerZIP } from "@electron-forge/maker-zip";
 import { WebpackPlugin } from "@electron-forge/plugin-webpack";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { DEVELOPER_DATA } from "./devconst";
-
 import { mainConfig } from "./webpack.main.config";
 import { rendererConfig } from "./webpack.renderer.config";
 
@@ -14,9 +13,6 @@ const config: ForgeConfig = {
     osxSign: {
       identity: DEVELOPER_DATA.identity,
       optionsForFile: () => {
-        // Here, we keep it simple and return a single entitlements.plist file.
-        // You can use this callback to map different sets of entitlements
-        // to specific files in your packaged app.
         return {
           entitlements: "./build/entitlements.mac.plist",
         };
@@ -29,9 +25,23 @@ const config: ForgeConfig = {
       teamId: DEVELOPER_DATA.teamId,
     },
   },
+  publishers: [
+    {
+      name: "@electron-forge/publisher-github",
+      config: {
+        repository: {
+          owner: "ohmplatform",
+          name: "freedom-gpt-electron-app",
+        },
+        authToken: DEVELOPER_DATA.githubAuthTOken,
+        prerelease: true,
+        draft: false,
+      },
+    },
+  ],
   rebuildConfig: {},
   makers: [
-    new MakerZIP({}, ["darwin"]),
+    // new MakerZIP({}, ["darwin"]),
     // make a .dmg
     new MakerDMG({}, ["darwin"]),
   ],
