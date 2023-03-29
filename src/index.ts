@@ -413,7 +413,6 @@ io.on("connection", (socket) => {
 server.listen(EXPRESSPORT, () =>
   console.log(`Express Server running on port ${EXPRESSPORT}`)
 );
-
 const createWindow = (): void => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -428,7 +427,11 @@ const createWindow = (): void => {
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
   mainWindow.once("ready-to-show", () => {
-    updater();
+    updater({
+      repo: "https://github.com/ohmplatform/freedom-gpt-electron-app",
+      notifyUser: true,
+      host: "https://github.com",
+    });
   });
 };
 
