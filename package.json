@@ -1,7 +1,7 @@
 {
-  "name": "freedomgptapp",
-  "productName": "freedomgptapp",
-  "version": "1.0.0",
+  "name": "freedomgpt",
+  "productName": "freedomgpt",
+  "version": "1.0.1",
   "description": "Our goal is to illustrate that AI Safety cannot be achieved through censorship. Let information flow freely, no matter how discomforting - because the truth shall set us free.",
   "main": ".webpack/main",
   "scripts": {
@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "@electron-forge/maker-dmg": "^6.0.5",
+    "@electron-forge/publisher-github": "^6.0.5",
     "@electron/osx-sign": "^1.0.4",
     "axios": "^1.3.4",
     "cors": "^2.8.5",
@@ -58,6 +59,7 @@
     "remark-gfm": "^3.0.1",
     "socket.io": "^4.6.1",
     "socket.io-client": "^4.6.1",
+    "update-electron-app": "^2.0.1",
     "uuid": "^9.0.0"
   }
 }
