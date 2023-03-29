@@ -1,5 +1,4 @@
 import MakerDMG from "@electron-forge/maker-dmg";
-import { MakerZIP } from "@electron-forge/maker-zip";
 import { WebpackPlugin } from "@electron-forge/plugin-webpack";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { DEVELOPER_DATA } from "./devconst";
@@ -34,7 +33,7 @@ const config: ForgeConfig = {
           name: "freedom-gpt-electron-app",
         },
         authToken: DEVELOPER_DATA.githubAuthTOken,
-        prerelease: true,
+        prerelease: false,
         draft: false,
       },
     },

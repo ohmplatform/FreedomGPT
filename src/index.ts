@@ -1,12 +1,12 @@
 import axios from "axios";
 import { spawn } from "child_process";
 import cors from "cors";
-import { app, BrowserWindow, dialog } from "electron";
-import { autoUpdater } from "electron-updater";
+import { app, BrowserWindow } from "electron";
 import express from "express";
 import fs from "fs";
 import http from "http";
 import { Server } from "socket.io";
+import updater from "update-electron-app";
 
 const expressapp = express();
 const server = http.createServer(expressapp);
@@ -428,86 +428,17 @@ const createWindow = (): void => {
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
   mainWindow.once("ready-to-show", () => {
-    autoUpdater.checkForUpdatesAndNotify();
+    updater();
   });
 };
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.on("ready", () => {
   checkIfFileExists();
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
   app.quit();
 });
-
-// autoUpdater.on("update-downloaded", (event, releaseNotes, releaseName) => {
-//   const dialogOpts = {
-//     type: "info",
-//     buttons: ["Restart", "Later"],
-//     title: "Update Available",
-//     message: process.platform === "win32" ? releaseNotes : releaseName,
-//     detail:
-//       "A new version has been downloaded. Restart the application to apply the updates.",
-//   };
-
-//   dialog.showMessageBox(dialogOpts).then((returnValue) => {
-//     if (returnValue.response === 0) autoUpdater.quitAndInstall();
-//   });
-// });
-
-autoUpdater.on("update-available", () => {
-  // mainWindow.webContents.send("update_available");
-
-  // show a dialog to the user
-  const dialogOpts = {
-    type: "info",
-    buttons: ["Restart", "Later"],
-    title: "Update Available",
-    message:
-      "A new version has been downloaded. Restart the application to apply the updates.",
-    detail:
-      "A new version has been downloaded. Restart the application to apply the updates.",
-  };
-
-  dialog.showMessageBox(dialogOpts).then((returnValue) => {
-    if (returnValue.response === 0) autoUpdater.quitAndInstall();
-  });
-});
-
-// autoUpdater.on("update-downloaded", () => {
-//   // mainWindow.webContents.send("update_downloaded");
-//   // show a dialog to the user
-//   const dialogOpts = {
-//     type: "info",
-//     buttons: ["Restart", "Later"],
-//     title: "Update Available",
-//     message: "A new version has been downloaded. Restart the application to apply the updates.",
-//     detail:
-
-//       "A new version has been downloaded. Restart the application to apply the updates.",
-//   };
-
-//   dialog.showMessageBox(dialogOpts).then((returnValue) => {
-//     if (returnValue.response === 0) autoUpdater.quitAndInstall();
-//   }
-
-// });
-
-// app.on("browser-window-focus", function () {
-//   globalShortcut.register("CommandOrControl+R", () => {
-//     console.log("CommandOrControl+R is pressed: Shortcut Disabled");
-//   });
-// });
-
-// app.on("browser-window-blur", function () {
-//   globalShortcut.unregister("CommandOrControl+R");
-// });
 
 app.on("activate", () => {
   // On OS X it's common to re-create a window in the app when the
@@ -516,6 +447,3 @@ app.on("activate", () => {
     createWindow();
   }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
