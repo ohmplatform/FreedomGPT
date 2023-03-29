@@ -1,12 +1,12 @@
 import axios from "axios";
 import { spawn } from "child_process";
 import cors from "cors";
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, autoUpdater } from "electron";
 import express from "express";
 import fs from "fs";
 import http from "http";
 import { Server } from "socket.io";
-import updater from "update-electron-app";
+import update from "update-electron-app";
 
 const expressapp = express();
 const server = http.createServer(expressapp);
@@ -426,11 +426,57 @@ const createWindow = (): void => {
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
+  console.log(
+    `https://github.com/ohmplatform/freedom-gpt-electron-app/releases/download/v${app.getVersion()}/freedomgpt-${
+      process.platform
+    }-${process.arch}-${app.getVersion()}.zip`
+  );
+
+  // `https://github.com/ohmplatform/freedom-gpt-electron-app/releases/download/v${app.getVersion()}/freedomgpt-${
+  //   process.arch
+  // }-${app.getVersion()}.zip`;
   mainWindow.once("ready-to-show", () => {
-    updater({
-      repo: "https://github.com/ohmplatform/freedom-gpt-electron-app",
-      notifyUser: true,
-      host: "https://github.com",
+    update();
+    // autoUpdater.setFeedURL(
+    //   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //   // @ts-ignore
+    // `https://github.com/ohmplatform/freedom-gpt-electron-app/releases/download/v${app.getVersion()}/freedomgpt-${
+    //   process.platform
+    // }-${process.arch}-${app.getVersion()}.zip`
+    // );
+
+    // autoUpdater.setFeedURL({
+    //   url: `https://github.com/ohmplatform/freedom-gpt-electron-app/releases/download/v${app.getVersion()}/freedomgpt-${
+    //     process.platform
+    //   }-${process.arch}-${app.getVersion()}.zip`,
+    //   serverType: "default",
+    //   headers: {
+    //     "Cache-Control": "no-cache",
+    //   },
+    // });
+    // autoUpdater.checkForUpdates();
+
+    autoUpdater.on("update-available", () => {
+      console.log("Update available");
+    });
+
+    autoUpdater.on("update-downloaded", () => {
+      console.log("Update downloaded");
+      autoUpdater.quitAndInstall();
+    });
+
+    autoUpdater.on("update-not-available", () => {
+      console.log("Update not available");
+
+      // mainWindow.show();
+    });
+
+    autoUpdater.on("error", (err) => {
+      console.log("Error in auto-updater. " + err);
+    });
+
+    autoUpdater.on("checking-for-update", () => {
+      console.log("Checking for update...");
     });
   });
 };
