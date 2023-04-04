@@ -1,49 +1,60 @@
 # Freedom GPT
 
-# Installing Node.js for an Electron App
+![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)
 
-To run an Electron app, you'll need to have Node.js installed on your computer. If you don't already have Node.js installed, you can download it from the official website:
+![GitHub release](https://img.shields.io/github/release/ohmplatform/freedom-gpt-electron-app.svg)
 
-[Download Node.js](https://nodejs.org/en/download/)
+![GitHub stars](https://img.shields.io/github/stars/ohmplatform/freedom-gpt-electron-app.svg)
 
-Once you've downloaded and installed Node.js, you can start the Electron app using either Yarn or npm.
+![GitHub All Releases](https://img.shields.io/github/downloads/ohmplatform/freedom-gpt-electron-app/total.svg)
 
-## Using Yarn
+# Table of Contents
 
-If yarn is not installed you can install with
+- [Introduction](#introduction)
+- [Prerequisites](#prerequisites)
+- [Cloning the repository](#cloning-the-repository)
+- [Installing dependencies](#installing-dependencies)
+- [Changing the API URL](#changing-the-api-url)
+- [Running the application](#running-the-application)
+- [Building the application](#building-the-application)
 
-`npm install -g yarn`
+## Introduction
 
-After you have Yarn installed, you can start the Electron app by running the following command in your terminal:
+This is the repository for the Freedom GPT application. This application is built using
+[Electron](https://www.electronjs.org/) and [React](https://reactjs.org/). It is a desktop application that
+allows users to run alpaca models on their local machine.
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/en/download/)
+- [Yarn](https://classic.yarnpkg.com/en/docs/install/#windows-stable)
+- [Git](https://git-scm.com/downloads)
+
+## Cloning the repository
+
+To clone the repository, run the following command in your terminal:
+
+`git clone https://github.com/ohmplatform/freedom-gpt-electron-app.git`
+
+## Installing dependencies
+
+To install the dependencies, run the following command in your terminal:
 
 `yarn install`
 
-## Changing src/index.ts file
+## Changing the API URL
 
+We are using `http://localhost:8889` as the API URL, you can change it in the file
 `src/index.ts`
 
-Go ahead and change the CHAT_APP_LOCATION to map it to your chat executable which you can install from
+## Running the application
 
-[CPP File Executable Download](https://github.com/antimatter15/alpaca.cpp/releases)
-
-## Changing PORT
-
-We are using port `3000` for the `express server` you can change it in the same file
-`src/index.ts`
-
-## ggml-alpaca-7b-q4.bin
-
-<img src="assets/path.png" />
-## Make sure this is installed in the root of your project
-
-Download the zip file corresponding to your operating system from the [latest release](https://github.com/antimatter15/alpaca.cpp/releases/latest). On Windows, download `alpaca-win.zip`, on Mac (both Intel or ARM) download `alpaca-mac.zip`, and on Linux (x64) download `alpaca-linux.zip`.
-
-Download [ggml-alpaca-7b-q4.bin](https://huggingface.co/Sosaka/Alpaca-native-4bit-ggml/blob/main/ggml-alpaca-7b-q4.bin) and place it in the same folder as the `chat` executable in the zip file. There are several options:
-
-Once you've downloaded the model weights and placed them into the same directory as the `chat` or `chat.exe` executable, run:
-
-## Running application
-
-If you followed all the steps, you can run the program by giving the following command
+To run the application, run the following command in your terminal:
 
 `yarn start`
+
+## Building the application
+
+To build the application, run the following command in your terminal:
+
+`yarn package`

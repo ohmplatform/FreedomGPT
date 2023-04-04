@@ -4,7 +4,6 @@ import { MessageType } from "../types/types";
 const Reply = ({ message, id }: { message: string; id: string }) => {
   const { messageFetching, messages } = useMessageFetching();
 
-  // remove the first 2 letter from the message
   const trimmedMessage = message.slice(2);
 
   return (
@@ -104,13 +103,7 @@ export default function Message({ user, message, id }: MessageType) {
             width: "100%",
           }}
         >
-          {user ? (
-            message.trim()
-          ) : (
-            // <DisplayWordsOneByOne words={trimmedMessage} id={id} />
-            // message.trim()
-            <Reply message={message} id={id} />
-          )}
+          {user ? message.trim() : <Reply message={message} id={id} />}
         </div>
       </div>
     </div>

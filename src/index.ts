@@ -23,26 +23,32 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 expressapp.use(cors());
 
 const EXPRESSPORT = 8889;
-const isDev: boolean = process.env.APP_DEV
-  ? process.env.APP_DEV.trim() == "true"
-  : false;
+const isDev: boolean = app.isPackaged ? false : true;
 
 const homeDir = app.getPath("home");
-console.log("Home" + homeDir);
 
 const MODEL_LOCATION = homeDir + "/FreedomGPT";
-console.log("MODEL_LOCATION" + MODEL_LOCATION);
 
-const CHAT_APP_LOCATION = isDev
-  ? app.getAppPath() + "/src/models/chat"
-  : process.resourcesPath + "/models/chat";
-console.log("ChatAPp" + CHAT_APP_LOCATION);
+const deviceisWindows = process.platform === "win32";
+
+const CHAT_APP_LOCATION = deviceisWindows
+  ? isDev
+    ? app.getAppPath() + "/src/models/windows/chat"
+    : process.resourcesPath + "/models/windows/chat"
+  : isDev
+  ? app.getAppPath() + "/src/models/mac/chat"
+  : process.resourcesPath + "/models/mac/chat";
 
 const FILEPATH = MODEL_LOCATION + "/ggml-alpaca-7b-q4.bin";
-console.log("FILEPATH" + FILEPATH);
+
 const MODEL_URL =
   "https://huggingface.co/Sosaka/Alpaca-native-4bit-ggml/resolve/main/ggml-alpaca-7b-q4.bin";
 const FILESIZE = 4212727017;
+
+// console.log("Home" + homeDir);
+// console.log("MODEL_LOCATION" + MODEL_LOCATION);
+// console.log("ChatAPp" + CHAT_APP_LOCATION);
+// console.log("FILEPATH" + FILEPATH);
 
 const downloadFile = async (
   url: string,
@@ -354,44 +360,45 @@ const checkIfFileExists = async () => {
           loaderWindow.close();
         });
     }
+    createWindow();
   }
-  createWindow();
 };
 
 io.on("connection", (socket) => {
-  // console.log("A user connecteddd");
-
+  /* 
+    The alpaca model doesnot work with context so we need to spawn a new process for each chat
+    This is not ideal but it works for now. If you have any suggestions on how to improve this
+    please let me know!
+  */
   let program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH]);
 
   socket.on("chatstart", () => {
     program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH]);
-    // console.log("S2", program.pid);
   });
 
   socket.on("stopResponding", () => {
-    // console.log("E1", program.pid);
     program.kill();
     program = null;
     socket.emit("chatend");
   });
 
   socket.on("message", (message) => {
-    // console.log("M1", program.pid);
     program.stdin.write(message + "\n");
-    // console.log("M2", program.pid);
 
+    let closing = "";
     program.stdout.on("data", (data) => {
-      // const abc = data.toString("utf8");
-
       let output = data.toString("utf8");
-      // console.log(output);
+
+      if (output.includes(">")) {
+        closing = closing.concat(">");
+      }
+
       output = output.replace(">", "");
+
       const response = { result: "success", output: output };
       socket.emit("response", response);
 
-      if (output.includes("message__end")) {
-        // console.log("done");
-        // console.log("E1", program.pid);
+      if (closing.includes(">>")) {
         program.kill();
         program = null;
         socket.emit("chatend");
@@ -400,21 +407,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    // console.log("A user disconnected");
     program.kill();
     program = null;
   });
-  // } else {
-  //   const response = { result: "error", output: "Only one user allowed" };
-  //   socket.emit("response", response);
-  // }
 });
 
-server.listen(EXPRESSPORT, () =>
-  console.log(`Express Server running on port ${EXPRESSPORT}`)
-);
+server.listen(EXPRESSPORT);
 const createWindow = (): void => {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     height: 1080,
     width: 1080,
@@ -423,38 +422,10 @@ const createWindow = (): void => {
     },
   });
 
-  // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
-  console.log(
-    `https://github.com/ohmplatform/freedom-gpt-electron-app/releases/download/v${app.getVersion()}/freedomgpt-${
-      process.platform
-    }-${process.arch}-${app.getVersion()}.zip`
-  );
-
-  // `https://github.com/ohmplatform/freedom-gpt-electron-app/releases/download/v${app.getVersion()}/freedomgpt-${
-  //   process.arch
-  // }-${app.getVersion()}.zip`;
   mainWindow.once("ready-to-show", () => {
     update();
-    // autoUpdater.setFeedURL(
-    //   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    //   // @ts-ignore
-    // `https://github.com/ohmplatform/freedom-gpt-electron-app/releases/download/v${app.getVersion()}/freedomgpt-${
-    //   process.platform
-    // }-${process.arch}-${app.getVersion()}.zip`
-    // );
-
-    // autoUpdater.setFeedURL({
-    //   url: `https://github.com/ohmplatform/freedom-gpt-electron-app/releases/download/v${app.getVersion()}/freedomgpt-${
-    //     process.platform
-    //   }-${process.arch}-${app.getVersion()}.zip`,
-    //   serverType: "default",
-    //   headers: {
-    //     "Cache-Control": "no-cache",
-    //   },
-    // });
-    // autoUpdater.checkForUpdates();
 
     autoUpdater.on("update-available", () => {
       console.log("Update available");
@@ -467,8 +438,6 @@ const createWindow = (): void => {
 
     autoUpdater.on("update-not-available", () => {
       console.log("Update not available");
-
-      // mainWindow.show();
     });
 
     autoUpdater.on("error", (err) => {
@@ -490,8 +459,6 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }

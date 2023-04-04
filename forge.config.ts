@@ -1,17 +1,22 @@
 import MakerDMG from "@electron-forge/maker-dmg";
+import MakerWix from "@electron-forge/maker-wix";
 import MakerZIP from "@electron-forge/maker-zip";
 import { WebpackPlugin } from "@electron-forge/plugin-webpack";
 import type { ForgeConfig } from "@electron-forge/shared-types";
-import { DEVELOPER_DATA } from "./devconst";
 import { mainConfig } from "./webpack.main.config";
 import { rendererConfig } from "./webpack.renderer.config";
+import * as dotenv from "dotenv";
+dotenv.config();
 
 const config: ForgeConfig = {
   packagerConfig: {
-    icon: "./src/appicons/icons/mac/ico",
+    icon:
+      process.platform === "win32"
+        ? "./src/appicons/icons/win/icon.ico"
+        : "./src/appicons/icons/mac/ico",
     extraResource: "./src/models",
     osxSign: {
-      identity: DEVELOPER_DATA.identity,
+      identity: process.env.APPLE_IDENTITY,
       optionsForFile: () => {
         return {
           entitlements: "./build/entitlements.mac.plist",
@@ -20,9 +25,9 @@ const config: ForgeConfig = {
     },
     osxNotarize: {
       tool: "notarytool",
-      appleId: DEVELOPER_DATA.appleId,
-      appleIdPassword: DEVELOPER_DATA.appleIdPassword,
-      teamId: DEVELOPER_DATA.teamId,
+      appleId: process.env.APPLE_ID as string,
+      appleIdPassword: process.env.APPLE_ID_PASSWORD as string,
+      teamId: process.env.APPLE_TEAM_ID as string,
     },
   },
   publishers: [
@@ -33,7 +38,7 @@ const config: ForgeConfig = {
           owner: "ohmplatform",
           name: "freedom-gpt-electron-app",
         },
-        authToken: DEVELOPER_DATA.githubAuthTOken,
+        authToken: process.env.GITHUB_AUTH_TOKEN,
         prerelease: false,
         draft: false,
       },
@@ -42,8 +47,19 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ["darwin"]),
-    // make a .dmg
     new MakerDMG({}, ["darwin"]),
+    new MakerWix(
+      {
+        name: "FreedomGPT",
+        description: "FreedomGPT",
+        manufacturer: process.env.MANUFACTURER_NAME as string,
+        ui: {
+          chooseDirectory: true,
+        },
+        icon: "./src/appicons/icons/win/icon.ico",
+      },
+      ["win32"]
+    ),
   ],
   plugins: [
     new WebpackPlugin({
