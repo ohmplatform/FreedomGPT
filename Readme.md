@@ -1,9 +1,14 @@
 # Freedom GPT
 
+Freedom GPT is an open-source desktop application built using Electron and React. It allows users to run alpaca models on their local machine. This repository contains the source code for the application.
+
+### GitHub License
 ![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)
 
+### GitHub Release
 ![GitHub release](https://img.shields.io/github/release/ohmplatform/freedom-gpt-electron-app.svg)
 
+### GitHub Stars
 ![GitHub stars](https://img.shields.io/github/stars/ohmplatform/freedom-gpt-electron-app.svg)
 
 ![GitHub All Releases](https://img.shields.io/github/downloads/ohmplatform/freedom-gpt-electron-app/total.svg)
@@ -34,7 +39,7 @@ allows users to run alpaca models on their local machine.
 
 To clone the repository, run the following command in your terminal:
 
-`git clone https://github.com/ohmplatform/freedom-gpt-electron-app.git`
+`git clone https://github.com/<your username>/freedom-gpt-electron-app.git`
 
 ## Installing dependencies
 
@@ -58,3 +63,5 @@ To run the application, run the following command in your terminal:
 To build the application, run the following command in your terminal:
 
 `yarn package`
+
+This will create a distributable package for your operating system, which you can then install and use.
