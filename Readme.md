@@ -23,7 +23,7 @@ allows users to run alpaca models on their local machine.
 # If you want to run the application directly
 
 ```sh
-git clone --recursive https://github.com/ohmplatform/FreedomGPT.git
+git clone https://github.com/ohmplatform/FreedomGPT.git
 cd FreedomGPT
 yarn install
 yarn start:prod
@@ -37,7 +37,6 @@ yarn start:prod
 git clone --recursive https://github.com/ohmplatform/FreedomGPT.git
 cd FreedomGPT
 yarn install
-cd alpaca.cpp
 ```
 
 # Building the alpaca.cpp library
@@ -45,6 +44,7 @@ cd alpaca.cpp
 ## Building from Source (MacOS/Linux)
 
 ```sh
+cd alpaca.cpp
 make chat
 ```
 
@@ -54,6 +54,7 @@ make chat
 - Run the following commands one by one:
 
 ```ps1
+cd alpaca.cpp
 cmake .
 cmake --build . --config Release
 ```
@@ -69,9 +70,11 @@ We are using `http://localhost:8889` as the API URL, you can change it in the fi
 
 To run the application, run the following command in your terminal:
 
-    Make sure you are in the root directory of the project.
+```sh
+yarn start
 
-`yarn start`
+⦻ Make sure you are in the root directory of the project.
+```
 
 # Credits
 
