@@ -20,8 +20,8 @@ Freedom GPT is an open-source desktop application built using Electron and React
 - [Cloning the repository](#cloning-the-repository)
 - [Installing dependencies](#installing-dependencies)
 - [Changing the API URL](#changing-the-api-url)
-- [Running the application](#running-the-application)
 - [Building the application](#building-the-application)
+- [Running the application](#running-the-application)
 
 ## Introduction
 
@@ -40,6 +40,12 @@ allows users to run alpaca models on their local machine.
 To clone the repository, run the following command in your terminal:
 
 `git clone https://github.com/<your username>/freedom-gpt-electron-app.git`
+
+## How to install Yarn:
+
+If your system doesnt have yarn installed, use this command first:
+
+`sudo npm install --global yarn`
 
 ## Installing dependencies
 
