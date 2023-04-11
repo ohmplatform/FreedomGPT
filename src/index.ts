@@ -20,9 +20,15 @@ const io = new Server(server, {
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
+if (require("electron-squirrel-startup")) app.quit();
+
 expressapp.use(cors());
 
 const EXPRESSPORT = 8889;
+
+const usePackaged =
+  process.env.npm_lifecycle_event === "start:prod" ? true : false;
+
 const isDev: boolean = app.isPackaged ? false : true;
 
 const homeDir = app.getPath("home");
@@ -33,10 +39,14 @@ const deviceisWindows = process.platform === "win32";
 
 const CHAT_APP_LOCATION = deviceisWindows
   ? isDev
-    ? app.getAppPath() + "/src/models/windows/chat"
+    ? usePackaged
+      ? app.getAppPath() + "/src/models/windows/chat"
+      : app.getAppPath() + "/alpaca.cpp/Release/chat"
     : process.resourcesPath + "/models/windows/chat"
   : isDev
-  ? app.getAppPath() + "/src/models/mac/chat"
+  ? usePackaged
+    ? app.getAppPath() + "/src/models/mac/chat"
+    : app.getAppPath() + "/alpaca.cpp/chat"
   : process.resourcesPath + "/models/mac/chat";
 
 const FILEPATH = MODEL_LOCATION + "/ggml-alpaca-7b-q4.bin";
@@ -412,7 +422,9 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(EXPRESSPORT);
+server.listen(process.env.PORT || EXPRESSPORT, () => {
+  console.log(`Server listening on port ${EXPRESSPORT}`);
+});
 const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
     height: 1080,
@@ -434,6 +446,7 @@ const createWindow = (): void => {
     autoUpdater.on("update-downloaded", () => {
       console.log("Update downloaded");
       autoUpdater.quitAndInstall();
+      app.quit();
     });
 
     autoUpdater.on("update-not-available", () => {

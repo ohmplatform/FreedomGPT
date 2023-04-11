@@ -1,6 +1,7 @@
 import MakerDMG from "@electron-forge/maker-dmg";
 import MakerWix from "@electron-forge/maker-wix";
 import MakerZIP from "@electron-forge/maker-zip";
+import MakerSquirrel from "@electron-forge/maker-squirrel";
 import { WebpackPlugin } from "@electron-forge/plugin-webpack";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { mainConfig } from "./webpack.main.config";
@@ -19,7 +20,7 @@ const config: ForgeConfig = {
       identity: process.env.APPLE_IDENTITY,
       optionsForFile: () => {
         return {
-          entitlements: "./build/entitlements.mac.plist",
+          entitlements: "./macbuild/entitlements.mac.plist",
         };
       },
     },
@@ -36,7 +37,7 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: "ohmplatform",
-          name: "freedom-gpt-electron-app",
+          name: "FreedomGPT",
         },
         authToken: process.env.GITHUB_AUTH_TOKEN,
         prerelease: false,
@@ -48,15 +49,34 @@ const config: ForgeConfig = {
   makers: [
     new MakerZIP({}, ["darwin"]),
     new MakerDMG({}, ["darwin"]),
-    new MakerWix(
+
+    // new MakerWix(
+    //   {
+    //     name: "FreedomGPT",
+    //     description: "FreedomGPT",
+    //     manufacturer: process.env.MANUFACTURER_NAME as string,
+    //     ui: {
+    //       chooseDirectory: true,
+    //     },
+    //     icon: "./src/appicons/icons/win/icon.ico",
+    //     certificateFile: "./keys/certificate.pfx",
+    //     certificatePassword: process.env.WIN_CERTIFICATE_PASSWORD as string,
+    //   },
+    //   ["win32"]
+    // ),
+    new MakerSquirrel(
       {
         name: "FreedomGPT",
         description: "FreedomGPT",
-        manufacturer: process.env.MANUFACTURER_NAME as string,
-        ui: {
-          chooseDirectory: true,
-        },
-        icon: "./src/appicons/icons/win/icon.ico",
+        authors: process.env.MANUFACTURER_NAME as string,
+        setupIcon: "./src/appicons/icons/win/icon.ico",
+        certificateFile: "./keys/certificate.pfx",
+        certificatePassword: process.env.WIN_CERTIFICATE_PASSWORD as string,
+        iconUrl:
+          "https://raw.githubusercontent.com/ohmplatform/FreedomGPT/main/src/appicons/icons/win/icon.ico",
+        owners: process.env.MANUFACTURER_NAME as string,
+        title: "FreedomGPT",
+        copyright: process.env.MANUFACTURER_NAME as string,
       },
       ["win32"]
     ),

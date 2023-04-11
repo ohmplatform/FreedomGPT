@@ -2694,6 +2694,13 @@ electron-packager@^17.1.1:
     semver "^7.1.3"
     yargs-parser "^21.1.1"
 
+electron-squirrel-startup@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/electron-squirrel-startup/-/electron-squirrel-startup-1.0.0.tgz#19b4e55933fa0ef8f556784b9c660f772546a0b8"
+  integrity sha512-Oce8mvgGdFmwr+DsAcXBmFK8jFfN6yaFAP9IvyhTfupM3nFkBku/7VS/mdtJteWumImkC6P+BKGsxScoDDkv9Q==
+  dependencies:
+    debug "^2.2.0"
+
 electron-to-chromium@^1.4.284:
   version "1.4.342"
   resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.342.tgz#3c7e199c3aa89c993df4b6f5223d6d26988f58e6"

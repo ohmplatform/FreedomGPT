@@ -1,0 +1,3 @@
+[submodule "alpaca.cpp"]
+	path = alpaca.cpp
+	url = https://github.com/antimatter15/alpaca.cpp.git
