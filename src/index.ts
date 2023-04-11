@@ -25,6 +25,10 @@ if (require("electron-squirrel-startup")) app.quit();
 expressapp.use(cors());
 
 const EXPRESSPORT = 8889;
+
+const usePackaged =
+  process.env.npm_lifecycle_event === "start:prod" ? true : false;
+
 const isDev: boolean = app.isPackaged ? false : true;
 
 const homeDir = app.getPath("home");
@@ -35,10 +39,14 @@ const deviceisWindows = process.platform === "win32";
 
 const CHAT_APP_LOCATION = deviceisWindows
   ? isDev
-    ? app.getAppPath() + "/alpaca.cpp/Release/chat"
+    ? usePackaged
+      ? app.getAppPath() + "/src/models/windows/chat"
+      : app.getAppPath() + "/alpaca.cpp/Release/chat"
     : process.resourcesPath + "/models/windows/chat"
   : isDev
-  ? app.getAppPath() + "/alpaca.cpp/chat"
+  ? usePackaged
+    ? app.getAppPath() + "/src/models/mac/chat"
+    : app.getAppPath() + "/alpaca.cpp/chat"
   : process.resourcesPath + "/models/mac/chat";
 
 const FILEPATH = MODEL_LOCATION + "/ggml-alpaca-7b-q4.bin";

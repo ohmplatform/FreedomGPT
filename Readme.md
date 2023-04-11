@@ -23,8 +23,8 @@ allows users to run alpaca models on their local machine.
 # If you want to run the application directly
 
 ```sh
-git clone --recursive https://github.com/ohmplatform/freedom-gpt-electron-app.git
-cd freedom-gpt-electron-app
+git clone --recursive https://github.com/ohmplatform/FreedomGPT.git
+cd FreedomGPT
 yarn install
 yarn start:prod
 ```
@@ -34,8 +34,8 @@ yarn start:prod
 ## Working with the repository
 
 ```sh
-git clone --recursive https://github.com/ohmplatform/freedom-gpt-electron-app.git
-cd freedom-gpt-electron-app
+git clone --recursive https://github.com/ohmplatform/FreedomGPT.git
+cd FreedomGPT
 yarn install
 cd alpaca.cpp
 ```

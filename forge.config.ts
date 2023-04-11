@@ -37,7 +37,7 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: "ohmplatform",
-          name: "freedom-gpt-electron-app",
+          name: "FreedomGPT",
         },
         authToken: process.env.GITHUB_AUTH_TOKEN,
         prerelease: false,
@@ -73,7 +73,7 @@ const config: ForgeConfig = {
         certificateFile: "./keys/certificate.pfx",
         certificatePassword: process.env.WIN_CERTIFICATE_PASSWORD as string,
         iconUrl:
-          "https://raw.githubusercontent.com/ohmplatform/freedom-gpt-electron-app/main/src/appicons/icons/win/icon.ico",
+          "https://raw.githubusercontent.com/ohmplatform/FreedomGPT/main/src/appicons/icons/win/icon.ico",
         owners: process.env.MANUFACTURER_NAME as string,
         title: "FreedomGPT",
         copyright: process.env.MANUFACTURER_NAME as string,
