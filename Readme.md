@@ -23,8 +23,8 @@ allows users to run alpaca models on their local machine.
 # If you want to run the application directly
 
 ```sh
-git clone https://github.com/ohmplatform/FreedomGPT.git
-cd FreedomGPT
+git clone https://github.com/ohmplatform/FreedomGPT.git freedom-gpt
+cd freedom-gpt
 yarn install
 yarn start:prod
 ```
@@ -34,8 +34,8 @@ yarn start:prod
 ## Working with the repository
 
 ```sh
-git clone --recursive https://github.com/ohmplatform/FreedomGPT.git
-cd FreedomGPT
+git clone --recursive https://github.com/ohmplatform/FreedomGPT.git freedom-gpt
+cd freedom-gpt
 yarn install
 ```
 
@@ -75,6 +75,13 @@ yarn start
 
 ⦻ Make sure you are in the root directory of the project.
 ```
+
+## Working Video
+
+<video width="80%" height="80%" controls>
+  <source src="video.mov" type="video/mp4"
+    loop autoplay muted >
+</video>
 
 # Credits
 
