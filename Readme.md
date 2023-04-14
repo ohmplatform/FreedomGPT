@@ -78,9 +78,7 @@ yarn start
 
 ## Working Video
 
-<video width="80%" height="80%" controls>
-  <source src="video.mp4" type="video/mp4"
-    loop autoplay muted >
+<video width="80%" height="80%" controls src="https://raw.githubusercontent.com/ohmplatform/FreedomGPT/main/video.mp4">
 </video>
 
 # Credits
