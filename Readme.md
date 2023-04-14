@@ -79,7 +79,7 @@ yarn start
 ## Working Video
 
 <video width="80%" height="80%" controls>
-  <source src="video.mov" type="video/mp4"
+  <source src="video.mp4" type="video/mp4"
     loop autoplay muted >
 </video>
 
