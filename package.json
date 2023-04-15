@@ -10,7 +10,11 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "make-win": "electron-forge make --platform=win32",
+    "make-macArm": "electron-forge make --platform=darwin --arch=arm64",
+    "make-macIntel": "electron-forge make --platform=darwin --arch=x64",
+    "push": "yarn version --patch && git push --follow-tags"
   },
   "keywords": [],
   "author": {
