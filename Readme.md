@@ -20,7 +20,7 @@ allows users to run alpaca models on their local machine.
 - [Yarn](https://classic.yarnpkg.com/en/docs/install/#windows-stable)
 - [Git](https://git-scm.com/downloads)
 
-# If you want to run the application directly
+# If you want to run the application directly (Mac and Windows only)
 
 ```sh
 git clone https://github.com/ohmplatform/FreedomGPT.git freedom-gpt
@@ -78,8 +78,7 @@ yarn start
 
 ## Working Video
 
-<video width="80%" height="80%" controls src="https://raw.githubusercontent.com/ohmplatform/FreedomGPT/main/video.mp4">
-</video>
+https://user-images.githubusercontent.com/54356944/231952507-94ef7335-4238-43ee-8c45-677f6cd48988.mov
 
 # Credits
 
