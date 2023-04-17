@@ -8,6 +8,12 @@
 
 ![GitHub All Releases](https://img.shields.io/github/downloads/ohmplatform/freedom-gpt-electron-app/total.svg)
 
+# Join our Discord Community
+
+Join our Discord Server to get the latest updates and to interact with the community.
+
+[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Rdgn4v9j)
+
 ## Introduction
 
 This is the repository for the Freedom GPT application. This application is built using
@@ -79,7 +85,6 @@ yarn start
 ## Working Video
 
 https://user-images.githubusercontent.com/54356944/231952507-94ef7335-4238-43ee-8c45-677f6cd48988.mov
-
 
 # Credits
 

@@ -1,0 +1,122 @@
+name: Package and Release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build-macArm:
+    name: Build (macos-latest)
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Use node 18.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: "18.x"
+      - name: Yarn install
+        run: yarn install
+      - name: Add MacOS certs
+        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
+        run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
+        env:
+          CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      - name: Make
+        if: startsWith(github.ref, 'refs/tags/')
+        run: yarn make-macArm
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.AUTH_TOKEN }}
+        with:
+          files: |
+            **/*.dmg
+            **/*.zip
+
+  build-macIntel:
+    name: Build (macos-latest)
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Use node 18.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: "18.x"
+      - name: Yarn install
+        run: yarn install
+      - name: Add MacOS certs
+        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
+        run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
+        env:
+          CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      - name: Make
+        if: startsWith(github.ref, 'refs/tags/')
+        run: yarn make-macIntel
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.AUTH_TOKEN }}
+        with:
+          files: |
+            **/*.dmg
+            **/*.zip
+
+  build-windows:
+    name: Build (windows-latest)
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Use node 18.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: "18.x"
+      - name: Yarn install
+        run: yarn install
+      - name: Add Windows certificate
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        id: write_file
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: "win-certificate.pfx"
+          encodedString: ${{ secrets.CERTIFICATE_WINDOWS_PFX }}
+      - name: Make
+        if: startsWith(github.ref, 'refs/tags/')
+        run: yarn make-win
+        env:
+          WINDOWS_PFX_FILE: ${{ steps.write_file.outputs.filePath }}
+          WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.AUTH_TOKEN }}
+        with:
+          files: |
+            **/*Setup.exe
+            **/*.nupkg
