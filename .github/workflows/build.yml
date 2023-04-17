@@ -1,7 +1,6 @@
 name: Package and Release
 
 on:
-  pull_request: {}
   push:
     tags:
       - v*
