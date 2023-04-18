@@ -87,6 +87,7 @@ yarn start
 To run the docker image, run the following command in your terminal:
 
 ```sh
+docker pull freedomgpt/freedomgpt
 docker run -d -p 8889:8889 freedomgpt/freedomgpt
 ```
 
