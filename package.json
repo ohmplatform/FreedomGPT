@@ -14,7 +14,8 @@
     "make-win": "electron-forge make --platform=win32",
     "make-macArm": "electron-forge make --platform=darwin --arch=arm64",
     "make-macIntel": "electron-forge make --platform=darwin --arch=x64",
-    "push": "yarn version --patch && git push --follow-tags"
+    "push": "yarn version --patch && git push --follow-tags",
+    "docker": "cd docker-app && docker build -t freedomgpt/freedomgpt ."
   },
   "keywords": [],
   "author": {
