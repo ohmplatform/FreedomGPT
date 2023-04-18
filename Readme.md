@@ -12,7 +12,7 @@
 
 Join our Discord Server to get the latest updates and to interact with the community.
 
-[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/vA3QJEkRnh)
+[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/h77wvJS4ga)
 
 ## Introduction
 
