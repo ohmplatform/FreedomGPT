@@ -82,6 +82,25 @@ yarn start
 ⦻ Make sure you are in the root directory of the project.
 ```
 
+## Dockerizing the application
+
+To run the docker image, run the following command in your terminal:
+
+```sh
+docker pull freedomgpt/freedomgpt
+docker run -d -p 8889:8889 freedomgpt/freedomgpt
+```
+
+If you want to build the docker image yourself, run the following command in your terminal:
+
+```sh
+docker build -t freedomgpt/freedomgpt .
+
+OR
+
+yarn docker
+```
+
 ## Working Video
 
 https://user-images.githubusercontent.com/54356944/231952507-94ef7335-4238-43ee-8c45-677f6cd48988.mov
