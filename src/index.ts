@@ -33,7 +33,7 @@ const isDev: boolean = app.isPackaged ? false : true;
 
 const homeDir = app.getPath("home");
 
-const MODEL_LOCATION = homeDir + "/FreedomGPT";
+const MODEL_LOCATION =   "../FreedomGPT";
 
 const deviceisWindows = process.platform === "win32";
 
