@@ -380,10 +380,10 @@ io.on("connection", (socket) => {
     This is not ideal but it works for now. If you have any suggestions on how to improve this
     please let me know!
   */
-  let program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH]);
+  let program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH, "--temp", "0.8"]);
 
   socket.on("chatstart", () => {
-    program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH]);
+    program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH, "--temp", "0.8"]);
   });
 
   socket.on("stopResponding", () => {
