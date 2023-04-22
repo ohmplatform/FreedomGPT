@@ -374,16 +374,26 @@ const checkIfFileExists = async () => {
   }
 };
 
+const osUtil = require("os-utils");
+var threads = 0;
+var sysThreads = osUtil.cpuCount();
+for (let i = 1; i < sysThreads; i = i * 2) {
+	threads = i;
+}
+if (sysThreads == 4) {
+	threads = 4;
+}
+
 io.on("connection", (socket) => {
   /* 
     The alpaca model doesnot work with context so we need to spawn a new process for each chat
     This is not ideal but it works for now. If you have any suggestions on how to improve this
     please let me know!
   */
-  let program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH]);
+  let program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH, "--threads", threads.toString(), "--batch_size", (threads * 4).toString()]);
 
   socket.on("chatstart", () => {
-    program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH]);
+    program = spawn(CHAT_APP_LOCATION, ["-m", FILEPATH, "--threads", threads.toString(), "--batch_size", (threads * 4).toString()]);
   });
 
   socket.on("stopResponding", () => {
