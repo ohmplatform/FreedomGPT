@@ -91,3 +91,6 @@ typings/
 
 # Electron-Forge
 out/
+
+# yarn lock
+yarn.lock
