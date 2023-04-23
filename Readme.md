@@ -1,3 +1,5 @@
+# ❌❌❌ Only for Developers ❌❌❌
+
 # Freedom GPT
 
 ![GitHub license](https://img.shields.io/badge/license-GNU-blue.svg)
@@ -26,15 +28,6 @@ allows users to run alpaca models on their local machine.
 - [Yarn](https://classic.yarnpkg.com/en/docs/install/#windows-stable)
 - [Git](https://git-scm.com/downloads)
 
-# If you want to run the application directly (Mac and Windows only)
-
-```sh
-git clone https://github.com/ohmplatform/FreedomGPT.git freedom-gpt
-cd freedom-gpt
-yarn install
-yarn start:prod
-```
-
 # If you want to contribute to the project
 
 ## Working with the repository
@@ -50,7 +43,7 @@ yarn install
 ## Building from Source (MacOS/Linux)
 
 ```sh
-cd alpaca.cpp
+cd llama.cpp
 make chat
 ```
 

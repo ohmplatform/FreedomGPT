@@ -20,9 +20,9 @@ export default function Messages({ messages }: MessagesProps) {
       style={{
         width: "100%",
         margin: "auto",
-        marginTop: "2.5vh",
+        marginTop: "3.5vh",
         overflowY: "scroll",
-        paddingBottom: "10vh",
+        paddingBottom: "22vh",
       }}
     >
       <>

@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import io from "socket.io-client";
+
 import { v4 as uuidv4 } from "uuid";
 import InitialLoader from "../components/InitialLoader";
 import Input from "../components/Input";
 import Messages from "../components/Messages";
 import { useMessageFetching } from "../context/MessageFetch";
 import { MessageType } from "../types/types";
+import { Socket } from "socket.io-client";
 
-const socket = io("http://localhost:8889");
-
-export default function Main() {
+export default function Main({ socket }: { socket: Socket }) {
   const [input, setInput] = useState<string>("");
   const [response, setResponse] = useState("");
   const {
@@ -45,18 +44,9 @@ export default function Main() {
   }, [inputRef.current, disableinput]);
 
   useEffect(() => {
-    socket.on("response", (data) => {
-      const result = data.output;
-
-      const justText = result.replace(
-        // eslint-disable-next-line no-control-regex
-        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-        ""
-      );
-
+    socket.on("response", (result) => {
+      setResponse((prevResponse) => prevResponse + result);
       if (messages.length > 0) {
-        setResponse((prevResponse) => prevResponse + justText);
-
         if (messageFetching) {
           setFetchedMessages(response);
 
@@ -67,18 +57,10 @@ export default function Main() {
             return [...prev];
           });
         }
-
-        // console.log(JSON.stringify(response));
-      }
-
-      //  if no data is returned console log the message complete
-      if (result === "\n>") {
-        console.log("message complete");
       }
     });
 
     socket.on("chatend", () => {
-      socket.emit("chatstart");
       setDisableinput(false);
       setMessageFetching(false);
     });
@@ -87,7 +69,13 @@ export default function Main() {
       socket.off("response");
       socket.off("chatend");
     };
-  }, [messages]);
+  }, [
+    messages,
+    response,
+    messageFetching,
+    setFetchedMessages,
+    setDisableinput,
+  ]);
 
   const askQuestion = (message: string) => {
     const senderID = uuidv4();
@@ -118,7 +106,7 @@ export default function Main() {
         style={{
           width: "100%",
           margin: "auto",
-          height: "100vh",
+          // height: "100vh",
           position: "relative",
           overflowY: "hidden",
         }}

@@ -1,14 +1,15 @@
-import React, { useState } from "react";
+import React from "react";
 import { BOTTOMTEXT } from "../constants/constants";
 import { useMessageFetching } from "../context/MessageFetch";
 import { send } from "./Icons";
+import { Socket } from "socket.io-client";
 
 type InputProps = {
   askQuestion: (msg: string) => void;
   input: string;
   setInput: (value: string) => void;
   inputRef: React.RefObject<HTMLDivElement>;
-  socket: any;
+  socket: Socket;
 };
 
 export default function Input({
@@ -22,8 +23,8 @@ export default function Input({
     messageFetching,
     setDisableinput,
     disableinput,
-    stopFetching,
     setMessageFetching,
+    stopFetching,
   } = useMessageFetching();
 
   function handleInputSubmit() {
@@ -158,6 +159,41 @@ export default function Input({
             </>
           )}
         </div>
+
+        {messageFetching && (
+          <button
+            onClick={() => {
+              stopFetching(socket);
+            }}
+            style={{
+              height: "35px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "transparent",
+              borderRadius: "5px",
+              borderWidth: "2px",
+              borderColor: "white",
+              borderStyle: "solid",
+              color: "white",
+              cursor: "pointer",
+              padding: "5px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              position: "absolute",
+              bottom: "15vh",
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = "#000";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.borderColor = "white";
+            }}
+          >
+            Stop Responding
+          </button>
+        )}
         <p
           style={{
             fontSize: "12.6px",
@@ -170,41 +206,6 @@ export default function Input({
           {BOTTOMTEXT}
         </p>
       </div>
-
-      {messageFetching && (
-        <button
-          onClick={() => {
-            stopFetching(socket);
-          }}
-          style={{
-            position: "absolute",
-            bottom: "18vh",
-            height: "35px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "transparent",
-            borderRadius: "5px",
-            borderWidth: "2px",
-            borderColor: "white",
-            borderStyle: "solid",
-            color: "white",
-            cursor: "pointer",
-            padding: "5px",
-            left: "50%",
-            transform: "translateX(-50%)",
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = "#000";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-            e.currentTarget.style.borderColor = "white";
-          }}
-        >
-          Stop Responding
-        </button>
-      )}
     </>
   );
 }

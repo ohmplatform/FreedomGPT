@@ -4,13 +4,11 @@ import { MessageType } from "../types/types";
 const Reply = ({ message, id }: { message: string; id: string }) => {
   const { messageFetching, messages } = useMessageFetching();
 
-  const trimmedMessage = message.slice(2);
-
   return (
     <div>
       {!messageFetching && messages[messages.length - 1].id === id && (
         <div
-          dangerouslySetInnerHTML={{ __html: trimmedMessage }}
+          dangerouslySetInnerHTML={{ __html: message }}
           style={{
             whiteSpace: "pre-wrap",
           }}
@@ -19,7 +17,7 @@ const Reply = ({ message, id }: { message: string; id: string }) => {
 
       {messages[messages.length - 1].id !== id && (
         <div
-          dangerouslySetInnerHTML={{ __html: trimmedMessage }}
+          dangerouslySetInnerHTML={{ __html: message }}
           style={{
             whiteSpace: "pre-wrap",
           }}
@@ -27,7 +25,7 @@ const Reply = ({ message, id }: { message: string; id: string }) => {
       )}
       {messageFetching && messages[messages.length - 1].id === id && (
         <p>
-          {trimmedMessage}
+          {message}
           <span
             className={`cursor`}
             style={{
