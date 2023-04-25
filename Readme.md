@@ -44,7 +44,7 @@ yarn install
 
 ```sh
 cd llama.cpp
-make chat
+make
 ```
 
 ## Building from Source (Windows)
@@ -53,12 +53,12 @@ make chat
 - Run the following commands one by one:
 
 ```ps1
-cd alpaca.cpp
+cd llama.cpp
 cmake .
 cmake --build . --config Release
 ```
 
-- You should now have a `Release` folder with a `chat.exe` file inside it. You can run this file to test the chat client.
+- You should now have a `Release` folder with a `main.exe` file inside it. You can run this file to test the chat client.
 
 ## Changing the API URL
 
@@ -96,7 +96,7 @@ yarn docker
 
 ## Working Video
 
-https://user-images.githubusercontent.com/54356944/231952507-94ef7335-4238-43ee-8c45-677f6cd48988.mov
+https://user-images.githubusercontent.com/54356944/233825525-d95accf3-a26b-4f37-8fc1-6e922f782a66.mov
 
 # Credits
 
