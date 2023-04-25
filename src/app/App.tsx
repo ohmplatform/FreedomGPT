@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
 import Loader from "./components/Loader";
+import { DownloadProgressContext } from "./context/DownloadContext";
 import { useModel } from "./context/ModelSelection";
 import Main from "./screens/Main";
 
@@ -11,8 +12,9 @@ const models = [
       model: "alpaca-7B-fast",
       downloadURL:
         "https://huggingface.co/Sosaka/Alpaca-native-4bit-ggml/resolve/main/ggml-alpaca-7b-q4.bin",
-      requiredRAM: 16,
+      requiredRAM: 6,
       fileSize: 4,
+      id: "alpaca-7B-fast",
     },
   },
   {
@@ -21,8 +23,9 @@ const models = [
       model: "alpaca-7B-full",
       downloadURL:
         "https://huggingface.co/Sosaka/Alpaca-native-4bit-ggml/resolve/main/ggml-alpaca-7b-q4.bin",
-      requiredRAM: 16,
+      requiredRAM: 6,
       fileSize: 4,
+      id: "alpaca-7B-full",
     },
   },
   {
@@ -31,8 +34,9 @@ const models = [
       model: "llama-7B-fast",
       downloadURL:
         "https://huggingface.co/hlhr202/llama-7B-ggml-int4/resolve/main/ggml-model-q4_0.bin",
-      requiredRAM: 16,
+      requiredRAM: 6,
       fileSize: 4,
+      id: "llama-7B-fast",
     },
   },
   {
@@ -41,8 +45,9 @@ const models = [
       model: "llama-7B-full",
       downloadURL:
         "https://huggingface.co/hlhr202/llama-7B-ggml-int4/resolve/main/ggml-model-q4_0.bin",
-      requiredRAM: 16,
+      requiredRAM: 6,
       fileSize: 4,
+      id: "llama-7B-full",
     },
   },
 ];
@@ -72,7 +77,7 @@ const App = ({ socket }: { socket: Socket }) => {
               socket={socket}
               setSelectionVisible={setSelectionVisible}
               model={model}
-              key={index}
+              key={model.config.id}
               index={index}
             />
           ))}
@@ -163,15 +168,42 @@ function Header({
               zIndex: 1001,
             }}
           >
-            {models.map((model, index) => (
-              <ModelList
-                socket={socket}
-                setSelectionVisible={setSelectionVisible}
-                model={model}
-                key={index}
-                index={index}
-              />
-            ))}
+            {models
+              .filter((model) => model.config.FILEPATH !== null)
+              .map((model, index) => (
+                // models.map((model, index) => (
+                <ModelList
+                  socket={socket}
+                  setSelectionVisible={setSelectionVisible}
+                  model={model}
+                  key={model.config.id}
+                  index={index}
+                />
+              ))}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: "1rem",
+              }}
+            >
+              <button
+                style={{
+                  padding: "0.5rem 1rem",
+                  backgroundColor: "#FF8C00",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontSize: "1.2rem",
+                }}
+                onClick={() => {
+                  window.location.reload();
+                }}
+              >
+                Download More Models
+              </button>
+            </div>
           </div>
 
           <div
@@ -244,24 +276,31 @@ function ModelList({
       model: string;
       downloadURL: string;
       requiredRAM: number;
-
+      id: string;
       fileSize: number;
     };
   };
   index: number;
 }) {
   const { ramUsage, diskUsage } = useModel();
-  const [downloadProgress, setDownloadProgress] = useState({
-    percentage: 0,
-    downloadedBytes: 0,
-    contentLength: 0,
-    selectedModel: "",
-  });
+
   const [isDownloaded, setIsDownloaded] = useState(false);
-  const [Loading, setLoading] = useState(false);
+  const { downloadProgress, setDownloadProgress } = useContext(
+    DownloadProgressContext
+  );
+  const [loading, setLoading] = useState(false);
 
   const isRamSufficient = model.config.requiredRAM <= Number(ramUsage.totalRAM);
   const isDiskSufficient = model.config.fileSize < Number(diskUsage.freeDisk);
+
+  useEffect(() => {
+    localStorage.getItem(
+      model.config.model
+        .split("-")
+        .slice(0, model.config.model.split("-").length - 1)
+        .join("-")
+    ) && setIsDownloaded(true);
+  }, []);
 
   useEffect(() => {
     socket.on(
@@ -296,19 +335,20 @@ function ModelList({
   }, []);
 
   useEffect(() => {
-    localStorage.getItem(
-      model.config.model
-        .split("-")
-        .slice(0, model.config.model.split("-").length - 1)
-        .join("-")
-    ) && setIsDownloaded(true);
-  }, []);
-
-  useEffect(() => {
     socket.on("download_canceled", () => {
       setLoading(false);
     });
   }, []);
+
+  const handleButtonCLick = () => {
+    if (isDownloaded) {
+      socket.emit("select_model", model.config);
+      setSelectionVisible(false);
+    } else {
+      setLoading(true);
+      socket.emit("download_model", model.config);
+    }
+  };
 
   return (
     <div>
@@ -335,17 +375,26 @@ function ModelList({
             <h3>{model.config.model.split("-").join(" ").toUpperCase()}</h3>
           </div>
           <div>
-            <h2> Model Size: </h2>
-            <h3>{model.config.fileSize} GB</h3>
+            <h3> Model Size: {model.config.fileSize} GB</h3>
+            <h4></h4>
 
-            <h4>
+            <h4
+              style={{
+                marginTop: "10px",
+              }}
+            >
               {isDiskSufficient ? "✅" : "❌"} {diskUsage.freeDisk} GB Available
             </h4>
           </div>
           <div>
-            <h2> RAM: </h2>
-            <h3>{model.config.requiredRAM} GB</h3>
-            <h4>
+            <h3> RAM: {model.config.requiredRAM} GB</h3>
+            <h4></h4>
+
+            <h4
+              style={{
+                marginTop: "10px",
+              }}
+            >
               {isRamSufficient ? "✅" : "❌"} {ramUsage.totalRAM} GB Available
             </h4>
           </div>
@@ -359,7 +408,14 @@ function ModelList({
             flexDirection: "column",
           }}
         >
-          {downloadProgress.selectedModel !== model.config.model && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "row",
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -368,87 +424,137 @@ function ModelList({
                 flexDirection: "row",
               }}
             >
-              <button
-                onClick={() => {
-                  if (isDownloaded) {
-                    socket.emit("select_model", model.config);
-                    setSelectionVisible(false);
-                  } else {
-                    setLoading(true);
-                    socket.emit("download_model", model.config);
-
-                    setTimeout(() => {
-                      setLoading(false);
-                    }, 10000);
-                  }
-                }}
-                style={{
-                  color: "white",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  border: "none",
-                  fontSize: "1.2rem",
-                  backgroundColor:
-                    !isRamSufficient || !isDiskSufficient
-                      ? "grey"
-                      : "dodgerblue",
-                  cursor:
-                    isRamSufficient && isDiskSufficient
-                      ? "pointer"
-                      : "not-allowed",
-                }}
-                disabled={!isRamSufficient || !isDiskSufficient}
-              >
-                {isDownloaded && !Loading ? "Start" : "Download"}
-                {Loading && <Loader size={20} />}
-              </button>
-
               {isDownloaded && (
                 <button
                   onClick={() => {
-                    if (
-                      confirm(
-                        "Are you sure you want to delete the model? This action cannot be undone."
-                      )
-                    ) {
-                      socket.emit(
-                        "delete_model",
-                        localStorage.getItem(
-                          model.config.model
-                            .split("-")
-                            .slice(0, model.config.model.split("-").length - 1)
-                            .join("-")
-                        )
-                      );
-                      localStorage.removeItem(
-                        model.config.model
-                          .split("-")
-                          .slice(0, model.config.model.split("-").length - 1)
-                          .join("-")
-                      );
-
-                      setIsDownloaded(false);
-                      window.location.reload();
-                    }
+                    handleButtonCLick();
                   }}
                   style={{
-                    backgroundColor: "tomato",
                     color: "white",
                     padding: "10px",
                     borderRadius: "5px",
                     border: "none",
-                    cursor: "pointer",
                     fontSize: "1.2rem",
-                    marginLeft: "10px",
+                    backgroundColor:
+                      !isRamSufficient || !isDiskSufficient
+                        ? "grey"
+                        : "dodgerblue",
+                    cursor:
+                      isRamSufficient && isDiskSufficient
+                        ? "pointer"
+                        : "not-allowed",
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                  disabled={!isRamSufficient || !isDiskSufficient}
+                >
+                  Start
+                </button>
+              )}
+
+              {isDownloaded && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "row",
                   }}
                 >
-                  Delete
+                  <button
+                    onClick={() => {
+                      if (
+                        confirm(
+                          "Are you sure you want to delete the model? This action cannot be undone."
+                        )
+                      ) {
+                        socket.emit(
+                          "delete_model",
+                          localStorage.getItem(
+                            model.config.model
+                              .split("-")
+                              .slice(
+                                0,
+                                model.config.model.split("-").length - 1
+                              )
+                              .join("-")
+                          )
+                        );
+                        localStorage.removeItem(
+                          model.config.model
+                            .split("-")
+                            .slice(0, model.config.model.split("-").length - 1)
+                            .join("-")
+                        );
+
+                        setIsDownloaded(false);
+                        window.location.reload();
+                      }
+                    }}
+                    style={{
+                      backgroundColor: "tomato",
+                      color: "white",
+                      padding: "10px",
+                      borderRadius: "5px",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "1.2rem",
+                      marginLeft: "10px",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+
+              {!isDownloaded && downloadProgress.percentage === 0 && (
+                <button
+                  onClick={() => {
+                    handleButtonCLick();
+                  }}
+                  style={{
+                    color: "white",
+                    padding: "10px",
+                    borderRadius: "5px",
+                    border: "none",
+                    fontSize: "1.2rem",
+                    backgroundColor:
+                      !isRamSufficient || !isDiskSufficient || loading
+                        ? "grey"
+                        : "dodgerblue",
+                    cursor:
+                      isRamSufficient && isDiskSufficient && !loading
+                        ? "pointer"
+                        : "not-allowed",
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                  disabled={!isRamSufficient || !isDiskSufficient || loading}
+                >
+                  Download
+                  {loading && (
+                    <Loader
+                      size={20}
+                      style={{
+                        marginLeft: "10px",
+                      }}
+                    />
+                  )}
                 </button>
               )}
             </div>
-          )}
+          </div>
 
-          {downloadProgress.selectedModel === model.config.model && (
+          {downloadProgress.selectedModel
+            .split("-")
+            .slice(0, model.config.model.split("-").length - 1)
+            .join("-") ===
+            model.config.model
+              .split("-")
+              .slice(0, model.config.model.split("-").length - 1)
+              .join("-") && (
             <div
               style={{
                 marginTop: "10px",
