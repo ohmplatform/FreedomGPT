@@ -6,6 +6,7 @@ import type { ForgeConfig } from "@electron-forge/shared-types";
 import * as dotenv from "dotenv";
 import { mainConfig } from "./webpack.main.config";
 import { rendererConfig } from "./webpack.renderer.config";
+
 dotenv.config();
 
 const config: ForgeConfig = {
@@ -14,7 +15,7 @@ const config: ForgeConfig = {
       process.platform === "win32"
         ? "./src/appicons/icons/win/icon.ico"
         : "./src/appicons/icons/mac/ico",
-    extraResource: "./src/models",
+    extraResource: "./models",
     osxSign: {
       identity: "Developer ID Application: Age of AI, LLC (TS4W464GMN)",
       optionsForFile: () => {
@@ -52,8 +53,11 @@ const config: ForgeConfig = {
       {
         name: "FreedomGPT",
         setupIcon: "./src/appicons/icons/win/icon.ico",
-        certificateFile: process.env.WINDOWS_PFX_FILE as string,
-        certificatePassword: process.env.WIN_CERTIFICATE_PASSWORD as string,
+        certificateFile: process.env["WINDOWS_PFX_FILE"],
+        certificatePassword: process.env["WINDOWS_PFX_PASSWORD"],
+        owners: "Age of AI, LLC",
+        authors: "Age of AI, LLC",
+        copyright: "Age of AI, LLC",
       },
       ["win32"]
     ),
