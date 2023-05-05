@@ -20,22 +20,16 @@ export default function Messages({ messages }: MessagesProps) {
       style={{
         width: "100%",
         margin: "auto",
-        marginTop: "2.5vh",
+        marginTop: "3.5vh",
         overflowY: "scroll",
-        paddingBottom: "10vh",
+        paddingBottom: "22vh",
       }}
     >
       <>
-        {messages.map((item, index) => {
+        {messages.map((message, index) => {
           return (
             <div ref={scrollRef} key={index}>
-              <Message
-                user={item.user}
-                message={item.message}
-                image={item.image}
-                id={item.id}
-                key={item.id}
-              />
+              <Message message={message} key={message.id} />
             </div>
           );
         })}

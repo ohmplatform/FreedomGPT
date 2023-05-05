@@ -4,13 +4,11 @@ import { MessageType } from "../types/types";
 const Reply = ({ message, id }: { message: string; id: string }) => {
   const { messageFetching, messages } = useMessageFetching();
 
-  const trimmedMessage = message.slice(2);
-
   return (
     <div>
       {!messageFetching && messages[messages.length - 1].id === id && (
         <div
-          dangerouslySetInnerHTML={{ __html: trimmedMessage }}
+          dangerouslySetInnerHTML={{ __html: message }}
           style={{
             whiteSpace: "pre-wrap",
           }}
@@ -19,7 +17,7 @@ const Reply = ({ message, id }: { message: string; id: string }) => {
 
       {messages[messages.length - 1].id !== id && (
         <div
-          dangerouslySetInnerHTML={{ __html: trimmedMessage }}
+          dangerouslySetInnerHTML={{ __html: message }}
           style={{
             whiteSpace: "pre-wrap",
           }}
@@ -27,7 +25,7 @@ const Reply = ({ message, id }: { message: string; id: string }) => {
       )}
       {messageFetching && messages[messages.length - 1].id === id && (
         <p>
-          {trimmedMessage}
+          {message}
           <span
             className={`cursor`}
             style={{
@@ -42,12 +40,12 @@ const Reply = ({ message, id }: { message: string; id: string }) => {
   );
 };
 
-export default function Message({ user, message, id }: MessageType) {
+export default function Message({ message }: { message: MessageType }) {
   return (
     <div
       style={{
         width: "100%",
-        backgroundColor: !user ? "#444654" : "transparent",
+        backgroundColor: !message.user ? "#444654" : "transparent",
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
@@ -67,6 +65,20 @@ export default function Message({ user, message, id }: MessageType) {
           alignSelf: "center",
         }}
       >
+        <p
+          style={{
+            fontSize: "12px",
+            color: "#fff",
+            fontWeight: "bold",
+            position: "absolute",
+            right: "0px",
+            backgroundColor: "#000",
+            padding: !message.user && "5px 10px",
+            marginTop: "-25px",
+          }}
+        >
+          {!message.user && message.model.split("-").join(" ").toUpperCase()}
+        </p>
         <div
           style={{
             width: "25px",
@@ -74,7 +86,7 @@ export default function Message({ user, message, id }: MessageType) {
             alignItems: "flex-start",
           }}
         >
-          {user ? (
+          {message.user ? (
             <p
               style={{
                 fontSize: "40px",
@@ -98,12 +110,16 @@ export default function Message({ user, message, id }: MessageType) {
           style={{
             marginLeft: "50px",
             marginRight: "15px",
-            fontSize: "15px",
+            fontSize: "16px",
             lineHeight: "25px",
             width: "100%",
           }}
         >
-          {user ? message.trim() : <Reply message={message} id={id} />}
+          {message.user ? (
+            message.message.trim()
+          ) : (
+            <Reply message={message.message} id={message.id} />
+          )}
         </div>
       </div>
     </div>

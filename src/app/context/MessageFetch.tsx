@@ -1,5 +1,6 @@
 import React, { createContext, useState } from "react";
 import { MessageType } from "../types/types";
+import { Socket } from "socket.io-client";
 
 export interface MessageFetch {
   messageFetching: boolean;
@@ -11,7 +12,7 @@ export interface MessageFetch {
   setDisableinput: React.Dispatch<React.SetStateAction<boolean>>;
   setFetchedMessages: React.Dispatch<React.SetStateAction<string>>;
   fetchedMessages: string;
-  stopFetching: (message: string) => void;
+  stopFetching: (socket: Socket) => void;
 }
 
 export const MessageFetchContext = createContext({
@@ -30,7 +31,7 @@ export const MessageFetchContext = createContext({
   setFetchedMessages: (value: string) => {},
   fetchedMessages: "",
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  stopFetching: (message: string) => {},
+  stopFetching: (socket: Socket) => {},
 });
 
 export const useMessageFetching = () => React.useContext(MessageFetchContext);
@@ -45,7 +46,7 @@ const MessageFetchProvider = ({ children }: { children: React.ReactNode }) => {
     setMessageFetching(!messageFetching);
   };
 
-  const stopFetching = (socket: any) => {
+  const stopFetching = (socket: Socket) => {
     socket.emit("stopResponding");
     setMessageFetching(false);
     setDisableinput(false);

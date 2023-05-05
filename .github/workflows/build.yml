@@ -7,33 +7,55 @@ on:
 
 jobs:
   build-macArm:
-    name: Build (macos-latest)
+    name: Build Arm Mac
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: macos-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         os: [macos-latest]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
+      - name: Checkout code with submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
       - name: Use node 18.x
         uses: actions/setup-node@v1
         with:
           node-version: "18.x"
+
       - name: Yarn install
         run: yarn install
-      - name: Add MacOS certs
-        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
-        run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
-        env:
-          CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
-          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+
+      # - name: Add MacOS certs
+      #   if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
+      #   run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
+      #   env:
+      #     CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
+      #     CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+
+      - name: Build
+        id: make_build
+        run: |
+          cd llama.cpp && make && cd ..
+
+      - name: Make directory
+        id: make_directory
+        run: |
+          mkdir -p models/llama
+
+      - name: Copy mac
+        id: copy_mac
+        run: |
+          cp llama.cpp/main models/llama
+
       - name: Make
         if: startsWith(github.ref, 'refs/tags/')
-        run: yarn make-macArm
+        run: yarn make
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -45,33 +67,55 @@ jobs:
             **/*.zip
 
   build-macIntel:
-    name: Build (macos-latest)
+    name: Build Intel Mac
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-latest
     strategy:
       matrix:
         os: [macos-latest]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
+      - name: Checkout code with submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
       - name: Use node 18.x
         uses: actions/setup-node@v1
         with:
           node-version: "18.x"
+
       - name: Yarn install
         run: yarn install
+
       - name: Add MacOS certs
         if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
         run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
         env:
           CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+
+      - name: Build
+        id: make_build
+        run: |
+          cd llama.cpp && make && cd ..
+
+      - name: Make directory
+        id: make_directory
+        run: |
+          mkdir -p models/llama
+
+      - name: Copy mac
+        id: copy_mac
+        run: |
+          cp llama.cpp/main models/llama
+
       - name: Make
         if: startsWith(github.ref, 'refs/tags/')
-        run: yarn make-macIntel
+        run: yarn make
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -81,23 +125,29 @@ jobs:
           files: |
             **/*.dmg
             **/*.zip
+            !**/*.txt.zip
 
   build-windows:
-    name: Build (windows-latest)
+    name: Build Windows
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
     strategy:
       matrix:
         os: [windows-latest]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
+      - name: Checkout code with submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
       - name: Use node 18.x
         uses: actions/setup-node@v1
         with:
           node-version: "18.x"
+
       - name: Yarn install
         run: yarn install
+
       - name: Add Windows certificate
         if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
         id: write_file
@@ -105,12 +155,29 @@ jobs:
         with:
           fileName: "win-certificate.pfx"
           encodedString: ${{ secrets.CERTIFICATE_WINDOWS_PFX }}
+
+      - name: Build
+        id: make_build
+        run: |
+          cd llama.cpp && mkdir build && cd build && cmake .. && cmake --build . --config Release && cd ../..
+
+      - name: Make directory
+        id: make_directory
+        run: |
+          mkdir -p models/llama
+
+      - name: Copy windows
+        id: copy_windows
+        run: |
+          cp llama.cpp/build/bin/Release/main.exe models/llama
+
       - name: Make
         if: startsWith(github.ref, 'refs/tags/')
-        run: yarn make-win
+        run: yarn make
         env:
           WINDOWS_PFX_FILE: ${{ steps.write_file.outputs.filePath }}
           WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
