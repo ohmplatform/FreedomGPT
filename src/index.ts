@@ -19,6 +19,9 @@ const io = new Server(server, {
   },
 });
 
+const usePackaged =
+  process.env.npm_lifecycle_event === "start:prod" ? true : false;
+
 const homeDir = app.getPath("home");
 
 const DEFAULT_MODEL_LOCATION = homeDir + "/FreedomGPT";
@@ -37,11 +40,25 @@ let program: import("child_process").ChildProcessWithoutNullStreams = null;
 
 const deviceisWindows = process.platform === "win32";
 
-const CHAT_APP_LOCATION = app.isPackaged
-  ? process.resourcesPath + "/models/llama/main"
-  : deviceisWindows
-  ? process.cwd() + "/llama.cpp/build/bin/Release/main"
-  : process.cwd() + "/llama.cpp/main";
+// const CHAT_APP_LOCATION = app.isPackaged
+//   ? process.resourcesPath + "/models/llama/main"
+//   : deviceisWindows
+//   ? process.cwd() + "/llama.cpp/build/bin/Release/main"
+//   : process.cwd() + "/llama.cpp/main";
+
+const isDev: boolean = app.isPackaged ? false : true;
+
+const CHAT_APP_LOCATION = deviceisWindows
+  ? isDev
+    ? usePackaged
+      ? process.cwd() + "/src/models/windows/main"
+      : process.cwd() + "/llama.cpp/build/bin/Release/main"
+    : process.resourcesPath + "/models/llama/main"
+  : isDev
+  ? usePackaged
+    ? process.cwd() + "/src/models/mac/main"
+    : process.cwd() + "/llama.cpp/main"
+  : process.resourcesPath + "/models/llama/main";
 
 io.on("connection", (socket) => {
   const totalRAM = os.totalmem() / 1024 ** 3;
