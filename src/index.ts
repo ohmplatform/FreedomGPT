@@ -51,12 +51,12 @@ const isDev: boolean = app.isPackaged ? false : true;
 const CHAT_APP_LOCATION = deviceisWindows
   ? isDev
     ? usePackaged
-      ? process.cwd() + "/src/models/windows/main"
+      ? process.cwd() + "/src/model/windows/main"
       : process.cwd() + "/llama.cpp/build/bin/Release/main"
     : process.resourcesPath + "/models/llama/main"
   : isDev
   ? usePackaged
-    ? process.cwd() + "/src/models/mac/main"
+    ? process.cwd() + "/src/model/mac/main"
     : process.cwd() + "/llama.cpp/main"
   : process.resourcesPath + "/models/llama/main";
 
