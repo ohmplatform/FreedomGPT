@@ -1,7 +1,6 @@
 export type MessageType = {
   message: string;
-  user?: boolean;
-  image?: any;
+  user: boolean;
   id: string;
-  replyId?: string;
+  model: string;
 };

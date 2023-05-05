@@ -1,5 +1,3 @@
-# ❌❌❌ Only for Developers ❌❌❌
-
 # Freedom GPT
 
 ![GitHub license](https://img.shields.io/badge/license-GNU-blue.svg)
@@ -38,7 +36,7 @@ cd freedom-gpt
 yarn install
 ```
 
-# Building the alpaca.cpp library
+# Building the llama.cpp library
 
 ## Building from Source (MacOS/Linux)
 
@@ -102,15 +100,13 @@ https://user-images.githubusercontent.com/54356944/233825525-d95accf3-a26b-4f37-
 
 This project utilizes several open-source packages and libraries, without which this project would not have been possible:
 
-"alpaca.cpp" by antimatter15 - a C++ library for Alpaca API. https://github.com/antimatter15/alpaca.cpp
+"llama.cpp" - C++ library. https://github.com/ggerganov/llama.cpp
 
 "LLAMA" by Facebook Research - a low-latency, large-scale approximate nearest neighbor search algorithm. https://github.com/facebookresearch/llama
 
 "Alpaca" by Stanford CRFM - a framework for understanding and improving the efficiency and robustness of algorithms. https://crfm.stanford.edu/2023/03/13/alpaca.html
 
 "alpaca-lora" by tloen - a Python library for working with LoRa radios and the Alpaca protocol. https://github.com/tloen/alpaca-lora
-
-"alpaca-lora-7b" by Hugging Face - a pre-trained language model for the Alpaca protocol. https://huggingface.co/Sosaka/Alpaca-native-4bit-ggml/tree/main
 
 We would like to express our gratitude to the developers of these packages and their contributors for making their work available to the public under open source licenses. Their contributions have enabled us to build a more robust and efficient project.
 

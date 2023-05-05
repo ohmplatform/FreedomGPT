@@ -7,6 +7,7 @@ import Messages from "../components/Messages";
 import { useMessageFetching } from "../context/MessageFetch";
 import { MessageType } from "../types/types";
 import { Socket } from "socket.io-client";
+import { useModel } from "../context/ModelSelection";
 
 export default function Main({ socket }: { socket: Socket }) {
   const [input, setInput] = useState<string>("");
@@ -22,6 +23,7 @@ export default function Main({ socket }: { socket: Socket }) {
   } = useMessageFetching();
 
   const inputRef = useRef<HTMLDivElement>(null);
+  const { selectedModel } = useModel();
 
   function addMessage(msg: MessageType) {
     if (msg.user) {
@@ -87,6 +89,7 @@ export default function Main({ socket }: { socket: Socket }) {
       message: message,
       user: true,
       id: senderID,
+      model: selectedModel,
     });
 
     socket.emit("message", message);
@@ -95,7 +98,7 @@ export default function Main({ socket }: { socket: Socket }) {
       message: "",
       user: false,
       id: replyID,
-      replyId: senderID,
+      model: selectedModel,
     });
   };
 

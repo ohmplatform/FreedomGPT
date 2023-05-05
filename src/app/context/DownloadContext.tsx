@@ -15,6 +15,16 @@ export const DownloadProgressContext = createContext<{
       selectedModel: string;
     }>
   >;
+  downloadStarted: {
+    started: boolean;
+    selectedModel: string;
+  };
+  setDownloadStarted: React.Dispatch<
+    React.SetStateAction<{
+      started: boolean;
+      selectedModel: string;
+    }>
+  >;
 }>({
   downloadProgress: {
     percentage: 0,
@@ -24,6 +34,12 @@ export const DownloadProgressContext = createContext<{
   },
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   setDownloadProgress: () => {},
+  downloadStarted: {
+    started: false,
+    selectedModel: "",
+  },
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  setDownloadStarted: () => {},
 });
 
 const DownloadProgressProvider = ({
@@ -37,12 +53,18 @@ const DownloadProgressProvider = ({
     contentLength: 0,
     selectedModel: "",
   });
+  const [downloadStarted, setDownloadStarted] = useState({
+    started: false,
+    selectedModel: "",
+  });
 
   return (
     <DownloadProgressContext.Provider
       value={{
         downloadProgress,
         setDownloadProgress,
+        downloadStarted,
+        setDownloadStarted,
       }}
     >
       {children}

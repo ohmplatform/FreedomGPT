@@ -1,8 +1,8 @@
 import axios from "axios";
 import { spawn } from "child_process";
 import cors from "cors";
-import diskusage from "diskusage";
-import { BrowserWindow, app, autoUpdater, dialog } from "electron";
+import checkDiskSpace from "check-disk-space";
+import { BrowserWindow, app, autoUpdater, dialog, shell } from "electron";
 import express from "express";
 import fs from "fs";
 import http from "http";
@@ -19,6 +19,10 @@ const io = new Server(server, {
   },
 });
 
+const homeDir = app.getPath("home");
+
+const DEFAULT_MODEL_LOCATION = homeDir + "/FreedomGPT";
+
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
@@ -33,35 +37,81 @@ let program: import("child_process").ChildProcessWithoutNullStreams = null;
 
 const deviceisWindows = process.platform === "win32";
 
-// Have not tested in windows yet
 const CHAT_APP_LOCATION = app.isPackaged
-  ? process.resourcesPath + "/models/mac/main"
+  ? process.resourcesPath + "/models/llama/main"
   : deviceisWindows
-  ? process.cwd() + "/llama.cpp/Release/main"
+  ? process.cwd() + "/llama.cpp/build/bin/Release/main"
   : process.cwd() + "/llama.cpp/main";
 
 io.on("connection", (socket) => {
   const totalRAM = os.totalmem() / 1024 ** 3;
   const freeRAM = os.freemem() / 1024 ** 3;
   const usedRAM = totalRAM - freeRAM;
+
   socket.emit("ram_usage", {
     totalRAM: totalRAM.toFixed(2),
     freeRAM: freeRAM.toFixed(2),
     usedRAM: usedRAM.toFixed(2),
   });
 
-  diskusage.check("/", (err, info) => {
-    if (err) {
-      console.log(err);
-    } else {
-      const totalDisk = info.total / 1024 ** 3;
-      const freeDisk = info.available / 1024 ** 3;
-      socket.emit("disk_usage", {
-        totalDisk: totalDisk.toFixed(2),
-        freeDisk: freeDisk.toFixed(2),
-      });
-    }
+  socket.on("open_github", () => {
+    shell.openExternal("https://github.com/ohmplatform/FreedomGPT", {
+      activate: true,
+    });
   });
+
+  socket.on("open_discord", () => {
+    shell.openExternal("https://discord.com/invite/h77wvJS4ga", {
+      activate: true,
+    });
+  });
+
+  // diskusage.check("/", (err, info) => {
+  //   if (err) {
+  //     console.error(err);
+  //     return;
+  //   }
+
+  //   socket.emit("disk_usage", {
+  //     totalDisk: (info.total / 1024 ** 3).toFixed(2),
+  //     freeDisk: (info.free / 1024 ** 3).toFixed(2),
+  //   });
+  // });
+
+  if (deviceisWindows) {
+    checkDiskSpace("C:/")
+      .then((diskSpace) => {
+        socket.emit("disk_usage", {
+          totalDisk: (diskSpace.size / 1024 ** 3).toFixed(2),
+          freeDisk: (diskSpace.free / 1024 ** 3).toFixed(2),
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  } else {
+    checkDiskSpace("/")
+      .then((diskSpace) => {
+        socket.emit("disk_usage", {
+          totalDisk: (diskSpace.size / 1024 ** 3).toFixed(2),
+          freeDisk: (diskSpace.free / 1024 ** 3).toFixed(2),
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
+
+  // checkDiskSpace("/")
+  //   .then((diskSpace) => {
+  //     socket.emit("disk_usage", {
+  //       totalDisk: (diskSpace.size / 1024 ** 3).toFixed(2),
+  //       freeDisk: (diskSpace.free / 1024 ** 3).toFixed(2),
+  //     });
+  //   })
+  //   .catch((err) => {
+  //     console.error(err);
+  //   });
 
   let selectedModel: string;
 
@@ -76,24 +126,63 @@ io.on("connection", (socket) => {
 
   socket.emit("selected_model", selectedModel);
 
-  socket.on("download_model", (data) => {
+  socket.on("choose_model", (data) => {
     selectedModel = data.model;
+    const options = {
+      defaultPath: DEFAULT_MODEL_LOCATION,
+      buttonLabel: "Choose",
+
+      filters: [
+        {
+          name: "Model",
+          extensions: ["bin"],
+        },
+      ],
+    };
+
+    dialog.showOpenDialog(options).then((result) => {
+      if (!result.canceled) {
+        const filePath = result.filePaths[0];
+
+        console.log(filePath);
+        socket.emit("download_complete", {
+          downloadPath: filePath,
+          selectedModel,
+        });
+      }
+    });
+  });
+
+  socket.on("download_model", (data) => {
+    const selectedModel = data.model;
     const fileName = data.downloadURL.split("/").pop();
-    const filePath = process.cwd() + "/" + fileName;
+    const filePath = DEFAULT_MODEL_LOCATION + "/" + fileName;
+
+    if (fs.existsSync(filePath)) {
+      fs.rmSync(filePath);
+    }
+
     const options = {
       defaultPath: filePath,
       buttonLabel: "Download",
     };
+    let downloadPath: string = null;
+    let writer: fs.WriteStream = null;
+    let lastPercentage = 0;
+
+    const cancelDownload = () => {
+      writer.close();
+      fs.unlinkSync(downloadPath);
+      socket.emit("download_canceled");
+    };
+
     dialog.showSaveDialog(options).then((result) => {
       if (result.canceled) {
-        socket.emit("download_canceled");
+        console.log("Cancelled download");
       }
-
       if (!result.canceled) {
-        const downloadPath = result.filePath;
-        const writer = fs.createWriteStream(downloadPath);
-
-        let lastPercentage = 0;
+        downloadPath = result.filePath;
+        writer = fs.createWriteStream(downloadPath);
 
         axios({
           url: data.downloadURL,
@@ -103,6 +192,11 @@ io.on("connection", (socket) => {
           .then((response) => {
             const contentLength = response.headers["content-length"];
             response.data.pipe(writer);
+
+            socket.emit("download_started", {
+              contentLength,
+              selectedModel,
+            });
 
             let downloadedBytes = 0;
 
@@ -145,6 +239,10 @@ io.on("connection", (socket) => {
             socket.emit("download_model", data);
           });
       }
+    });
+
+    socket.on("cancel_download", () => {
+      cancelDownload();
     });
   });
 

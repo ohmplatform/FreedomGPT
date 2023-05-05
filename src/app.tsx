@@ -1,3 +1,4 @@
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { io } from "socket.io-client";
@@ -8,13 +9,21 @@ import ModelProvider from "./app/context/ModelSelection";
 
 const socket = io("http://localhost:8889");
 
+const darkTheme = createTheme({
+  palette: {
+    mode: "dark",
+  },
+});
+
 function render() {
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
       <ModelProvider socket={socket}>
         <DownloadProgressProvider>
           <MessageFetchProvider>
-            <App socket={socket} />
+            <ThemeProvider theme={darkTheme}>
+              <App socket={socket} />
+            </ThemeProvider>
           </MessageFetchProvider>
         </DownloadProgressProvider>
       </ModelProvider>

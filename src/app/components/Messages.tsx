@@ -26,16 +26,10 @@ export default function Messages({ messages }: MessagesProps) {
       }}
     >
       <>
-        {messages.map((item, index) => {
+        {messages.map((message, index) => {
           return (
             <div ref={scrollRef} key={index}>
-              <Message
-                user={item.user}
-                message={item.message}
-                image={item.image}
-                id={item.id}
-                key={item.id}
-              />
+              <Message message={message} key={message.id} />
             </div>
           );
         })}
