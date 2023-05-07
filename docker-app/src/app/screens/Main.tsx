@@ -7,7 +7,10 @@ import Messages from "../components/Messages";
 import { useMessageFetching } from "../context/MessageFetch";
 import { MessageType } from "../types/types";
 
-const socket = io("http://localhost:8889");
+const { protocol, port, hostname } = window.location;
+const url = `${protocol}//${hostname}`;
+const fullUrl = port !== "" ? `${url}:${port}` : url;
+const socket = io(fullUrl);
 
 export default function Main() {
   const [input, setInput] = useState<string>("");
