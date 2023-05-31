@@ -101,6 +101,19 @@ OR
 yarn docker
 ```
 
+## Creating a x86-64 Linux build in Docker
+
+Since the prebuilt docker image is for ARM, you will need to create your own image from source if you intend to run on PC on Linux. You can use the dockerfile to create a native x86-64 image straight from the source:
+
+```sh
+git clone --recursive https://github.com/ohmplatform/FreedomGPT.git freedom-gpt
+cd freedom-gpt/docker-app
+docker build -t freedomgpt .
+docker run -d -p 8889:8889 docker.io/library/freedomgpt
+```
+Once your new image is built, you'll find it running at `http://localhost:8889/`
+
+
 ## Working Video
 
 https://user-images.githubusercontent.com/54356944/233825525-d95accf3-a26b-4f37-8fc1-6e922f782a66.mov
