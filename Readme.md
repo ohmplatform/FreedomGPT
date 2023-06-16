@@ -41,7 +41,7 @@ yarn start:prod
 
 ```sh
 git clone --recursive https://github.com/ohmplatform/FreedomGPT.git freedom-gpt
-cd freedom-gpt
+cd FreedomGPT
 yarn install
 ```
 
