@@ -37,7 +37,7 @@ jobs:
       - name: Build
         id: make_build
         run: |
-          cd llama.cpp && git checkout c574bddb368424b5996cbee2ec45ec050967d404 && LLAMA_METAL=1 make && cd ..
+          cd llama.cpp && LLAMA_METAL=1 make && cd ..
 
       - name: Make directory
         id: make_directory
