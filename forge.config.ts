@@ -1,11 +1,9 @@
+import { utils } from "@electron-forge/core";
 import MakerDMG from "@electron-forge/maker-dmg";
 import MakerSquirrel from "@electron-forge/maker-squirrel";
 import MakerZIP from "@electron-forge/maker-zip";
-import { WebpackPlugin } from "@electron-forge/plugin-webpack";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import * as dotenv from "dotenv";
-import { mainConfig } from "./webpack.main.config";
-import { rendererConfig } from "./webpack.renderer.config";
 
 dotenv.config();
 
@@ -30,21 +28,9 @@ const config: ForgeConfig = {
       appleIdPassword: process.env.APPLE_ID_PASSWORD as string,
       teamId: "TS4W464GMN",
     },
+    ignore: [/^\/llama\.cpp/, /^\/docker-app/, /^\/\.env/],
   },
-  publishers: [
-    {
-      name: "@electron-forge/publisher-github",
-      config: {
-        repository: {
-          owner: "ohmplatform",
-          name: "FreedomGPT",
-        },
-        authToken: process.env.GITHUB_AUTH_TOKEN,
-        prerelease: false,
-        draft: false,
-      },
-    },
-  ],
+  buildIdentifier: process.env.IS_BETA ? "beta" : "prod",
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ["darwin"]),
@@ -62,25 +48,7 @@ const config: ForgeConfig = {
       ["win32"]
     ),
   ],
-  plugins: [
-    new WebpackPlugin({
-      mainConfig,
-      devContentSecurityPolicy: "connect-src 'self' * 'unsafe-eval'",
-      renderer: {
-        config: rendererConfig,
-        entryPoints: [
-          {
-            html: "./src/index.html",
-            js: "./src/renderer.ts",
-            name: "main_window",
-            preload: {
-              js: "./src/preload.ts",
-            },
-          },
-        ],
-      },
-    }),
-  ],
+  plugins: [],
 };
 
 export default config;
