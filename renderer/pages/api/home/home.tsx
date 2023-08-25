@@ -382,7 +382,7 @@ const Home = ({
             }}
           >
             <p className="text-black dark:text-white text-md">
-              FreedomGPT v2.0.0
+              FreedomGPT v2.0.1
             </p>
           </div>
 
