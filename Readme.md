@@ -26,15 +26,6 @@ allows users to run alpaca models on their local machine.
 - [Yarn](https://classic.yarnpkg.com/en/docs/install/#windows-stable)
 - [Git](https://git-scm.com/downloads)
 
-# If you want to run the project
-
-```sh
-git clone --recursive https://github.com/ohmplatform/FreedomGPT.git freedom-gpt
-cd freedom-gpt
-yarn install
-yarn start:prod
-```
-
 # If you want to contribute to the project
 
 ## Working with the repository
@@ -113,9 +104,7 @@ This project utilizes several open-source packages and libraries, without which 
 
 "LLAMA" by Facebook Research - a low-latency, large-scale approximate nearest neighbor search algorithm. https://github.com/facebookresearch/llama
 
-"Alpaca" by Stanford CRFM - a framework for understanding and improving the efficiency and robustness of algorithms. https://crfm.stanford.edu/2023/03/13/alpaca.html
-
-"alpaca-lora" by tloen - a Python library for working with LoRa radios and the Alpaca protocol. https://github.com/tloen/alpaca-lora
+"Chatbot UI" - https://github.com/mckaywrigley/chatbot-ui
 
 We would like to express our gratitude to the developers of these packages and their contributors for making their work available to the public under open source licenses. Their contributions have enabled us to build a more robust and efficient project.
 
