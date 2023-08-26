@@ -14,7 +14,7 @@ export default async function handler(
         .json({ error: "Both question and authkey are required." });
     }
 
-    const apiUrl = "https://freedom-gpt.vercel.app/api/liberty";
+    const apiUrl = "https://app.freedomgpt.com/api/liberty";
 
     const headers = {
       Authorization: `Bearer ${authkey}`,

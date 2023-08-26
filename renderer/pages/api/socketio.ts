@@ -63,7 +63,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
       });
 
       socket.on("open_donation", () => {
-        shell.openExternal("https://freedom-gpt.vercel.app/donation", {
+        shell.openExternal("https://app.freedomgpt.com/donation", {
           activate: true,
         });
       });
