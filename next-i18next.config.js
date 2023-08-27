@@ -8,6 +8,7 @@ module.exports = {
       "es",
       "fr",
       "he",
+      "hu",
       "id",
       "it",
       "ja",

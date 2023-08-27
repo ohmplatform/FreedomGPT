@@ -1,0 +1,12 @@
+{
+  "New prompt": "Új kiváltó szöveg",
+  "New folder": "Új mappa",
+  "No prompts.": "Nincsenek kiváltó szövegek.",
+  "Search prompts...": "Keresés a kiváltó szövegek között...",
+  "Name": "Név",
+  "Description": "Leírás",
+  "A description for your prompt.": "Egy leírás a kiváltó szövegedhez.",
+  "Prompt": "Kiváltó szöveg",
+  "Prompt content. Use {{}} to denote a variable. Ex: {{name}} is a {{adjective}} {{noun}}": "Kiváltó szöveg tartalma. Használd a {{}} jeleket egy változó jelölésére. Példa: {{name}} egy {{adjective}} {{noun}}.",
+  "Save": "Mentés"
+}
