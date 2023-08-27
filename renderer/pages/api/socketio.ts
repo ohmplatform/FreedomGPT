@@ -27,7 +27,7 @@ const DEFAULT_MODEL_LOCATION = homeDir + "/FreedomGPT";
 const CHAT_APP_LOCATION = app.isPackaged
   ? process.resourcesPath + "/models/llama/main"
   : deviceisWindows
-  ? process.cwd() + "/llama.cpp/build/bin/Release/main"
+  ? process.cwd() + "\\llama.cpp\\bin\\Release\\main.exe"
   : process.cwd() + "/llama.cpp/main";
 
 const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
