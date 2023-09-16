@@ -56,7 +56,7 @@ cmake .
 cmake --build . --config Release
 ```
 
-- You should now have a `Release` folder with a `main.exe` file inside it. You can run this file to test the chat client.
+- You should now have a `bin\Release` folder with a `main.exe` file inside it. You can run this file to test the chat client.
 
 ## Changing the API URL
 
