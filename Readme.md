@@ -52,11 +52,13 @@ make
 
 ```ps1
 cd llama.cpp
-cmake .
+mkdir build
+cd build
+cmake ..
 cmake --build . --config Release
 ```
 
-- You should now have a `Release` folder with a `main.exe` file inside it. You can run this file to test the chat client.
+- You should now have a `llama.cpp/build/bin/Release` folder with a `main.exe` inside.
 
 ## Changing the API URL
 
