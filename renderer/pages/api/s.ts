@@ -1,7 +1,7 @@
 import { NextApiResponseServerIO } from "@/types/next";
 import axios from "axios";
 import checkDiskSpace from "check-disk-space";
-import { spawn } from "child_process";
+import { exec, spawn } from "child_process";
 import { app, dialog, shell } from "electron";
 import fs from "fs";
 import { Server as NetServer } from "http";
@@ -120,7 +120,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
           filters: [
             {
               name: "Model",
-              extensions: ["bin"],
+              extensions: ["bin", "gguf", "ggml"],
             },
           ],
         };
@@ -232,8 +232,6 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
         });
       });
 
-      let incomingMessage = "";
-
       socket.on(
         "select_model",
         (data: {
@@ -243,6 +241,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
             [key: string]: string;
           };
         }) => {
+          console.log(data);
           selectedModel = data.model;
           const FILEPATH = `${data.FILEPATH}`;
           const extraArgs = data.extraArgs;
@@ -263,50 +262,31 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
             console.error("Failed to start child process:", err);
           });
 
-          let firstTime = true;
-          let isTagOpen = false;
-          let closing = "";
-
-          program.stderr.on("data", (data) => {
-            console.log(data.toString("utf8"));
+          program.stdout.on("error", (err) => {
+            console.error("Failed to start child process:", err);
           });
 
-          program.stdout.on("data", (data) => {
-            if (firstTime && data.toString("utf8").includes(">")) {
-              firstTime = false;
-              socket.emit("model_loading", false);
-              socket.emit("model_loaded", true);
-              socket.emit("selected_model", selectedModel);
-              return;
-            }
-            const output = data.toString("utf8");
+          program.stdout.on("readable", () => {
+            socket.emit("model_loading", false);
+            socket.emit("model_loaded", true);
+            socket.emit("selected_model", selectedModel);
 
-            if (output.includes("<")) {
-              isTagOpen = true;
-            }
+            let data = program.stdout.read();
 
-            if (output.includes("=>")) {
-              closing = "";
+            if (data) {
+              const dataString = data.toString("utf8");
+              socket.emit("response", dataString);
+            } else {
+              console.log("No data");
             }
+          });
 
-            if (isTagOpen) {
-              closing = "";
-            }
+          program.stdout.on("pause", () => {
+            console.log("pausing");
+          });
 
-            if (output.includes(">")) {
-              closing = ">";
-            }
-
-            if (output) {
-              socket.emit("response", output);
-            }
-
-            if (closing === ">" && !isTagOpen) {
-              closing = "";
-              incomingMessage = "";
-              socket.emit("chatend");
-              return;
-            }
+          program.stderr.on("data", (data) => {
+            console.log(data.toString("utf8") + "123");
           });
 
           program.on("exit", (code, signal) => {

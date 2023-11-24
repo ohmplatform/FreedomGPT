@@ -92,9 +92,9 @@ OR
 yarn docker
 ```
 
-## Working Video
+<!-- ## Working Video
 
-https://user-images.githubusercontent.com/54356944/233825525-d95accf3-a26b-4f37-8fc1-6e922f782a66.mov
+https://user-images.githubusercontent.com/54356944/233825525-d95accf3-a26b-4f37-8fc1-6e922f782a66.mov -->
 
 # Credits
 
@@ -104,9 +104,7 @@ This project utilizes several open-source packages and libraries, without which 
 
 "LLAMA" by Facebook Research - a low-latency, large-scale approximate nearest neighbor search algorithm. https://github.com/facebookresearch/llama
 
-"Alpaca" by Stanford CRFM - a framework for understanding and improving the efficiency and robustness of algorithms. https://crfm.stanford.edu/2023/03/13/alpaca.html
-
-"alpaca-lora" by tloen - a Python library for working with LoRa radios and the Alpaca protocol. https://github.com/tloen/alpaca-lora
+"Chatbot UI" - https://github.com/mckaywrigley/chatbot-ui
 
 We would like to express our gratitude to the developers of these packages and their contributors for making their work available to the public under open source licenses. Their contributions have enabled us to build a more robust and efficient project.
 

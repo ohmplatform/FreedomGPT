@@ -1,7 +1,7 @@
 {
   "name": "freedomgpt",
   "productName": "freedomgpt",
-  "version": "2.0.4",
+  "version": "2.0.1",
   "description": "Our goal is to illustrate that AI Safety cannot be achieved through censorship. Let information flow freely, no matter how discomforting - because the truth shall set us free.",
   "main": "main/index.js",
   "scripts": {
@@ -21,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bhattaraijay05/freedom-gpt12"
+    "url": "https://github.com/ohmplatform/FreedomGPT"
   },
   "keywords": [],
   "author": {

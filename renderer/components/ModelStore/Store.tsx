@@ -65,7 +65,7 @@ export const Header = ({
       inverted: true,
       icon: IconHeart,
       onCLick: () => {
-        socket.emit("open_link", "https://freedom-gpt.vercel.app/donation");
+        socket.emit("open_link", "https://app.freedomgpt.com/donation");
       },
     },
   ];
@@ -376,7 +376,8 @@ const LocalModelOptions: React.FC<PluginWithModel["config"]> = ({
       description,
       fileSize,
       requiredRAM,
-      downloadURL,
+      downloadURL:
+        "https://huggingface.co/TheBloke/Luna-AI-Llama2-Uncensored-GGUF/blob/main/luna-ai-llama2-uncensored.Q8_0.gguf",
       tags,
       image,
       id,
@@ -1028,7 +1029,7 @@ const Models = ({ showCloudModel }: { showCloudModel: boolean }) => {
   const fetchModelsFromCloud = async () => {
     try {
       const response = await axios
-        .get<PluginWithModel[]>("https://freedom-gpt.vercel.app/api/models")
+        .get<PluginWithModel[]>("https://app.freedomgpt.com/api/models")
         .then((res) => res.data);
       response.forEach((data: any) => {
         const plugin: PluginWithModel = {
