@@ -377,7 +377,7 @@ const LocalModelOptions: React.FC<PluginWithModel["config"]> = ({
       fileSize,
       requiredRAM,
       downloadURL:
-        "https://huggingface.co/TheBloke/Luna-AI-Llama2-Uncensored-GGUF/blob/main/luna-ai-llama2-uncensored.Q8_0.gguf",
+        "https://huggingface.co/TheBloke/Luna-AI-Llama2-Uncensored-GGUF/resolve/main/luna-ai-llama2-uncensored.Q8_0.gguf",
       tags,
       image,
       id,
