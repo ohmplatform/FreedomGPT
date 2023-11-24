@@ -120,7 +120,7 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
           filters: [
             {
               name: "Model",
-              extensions: ["bin"],
+              extensions: ["bin", "gguf", "ggml"],
             },
           ],
         };
@@ -233,7 +233,6 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
       });
 
       let incomingMessage = "";
-
       socket.on(
         "select_model",
         (data: {
@@ -251,13 +250,23 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
             program.kill();
           }
 
-          program = spawn(CHAT_APP_LOCATION, [
-            "-m",
-            FILEPATH,
-            "-ins",
-            "-t",
-            extraArgs.t ? extraArgs.t : "5",
-          ]);
+          program = spawn(
+            CHAT_APP_LOCATION,
+            [
+              "-m",
+              FILEPATH,
+              "-ins",
+              "-t",
+              extraArgs.t ? extraArgs.t : "5",
+              "-p",
+              '"USER: {prompt} ASSISTANT:"',
+            ],
+            {
+              detached: false,
+              shell: true,
+              windowsHide: true,
+            }
+          );
 
           program.on("error", (err) => {
             console.error("Failed to start child process:", err);
@@ -266,30 +275,28 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
           let firstTime = true;
           let isTagOpen = false;
           let closing = "";
+          program.stderr.on("data", (data) => {});
 
-          program.stderr.on("data", (data) => {
-            console.log(data.toString("utf8"));
+          program.stderr.on("error", (err) => {
+            console.error("Failed to start child process:", err);
           });
 
           program.stdout.on("data", (data) => {
-            if (firstTime && data.toString("utf8").includes(">")) {
+            const output = data.toString("utf8");
+
+            if (firstTime && output.includes(">")) {
               firstTime = false;
               socket.emit("model_loading", false);
               socket.emit("model_loaded", true);
               socket.emit("selected_model", selectedModel);
               return;
             }
-            const output = data.toString("utf8");
 
             if (output.includes("<")) {
               isTagOpen = true;
             }
 
-            if (output.includes("=>")) {
-              closing = "";
-            }
-
-            if (isTagOpen) {
+            if (output.includes("=>") || isTagOpen) {
               closing = "";
             }
 
@@ -297,15 +304,17 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
               closing = ">";
             }
 
-            if (output) {
+            if (
+              output &&
+              output.trim().toLocaleLowerCase() !==
+                incomingMessage.trim().toLocaleLowerCase()
+            ) {
               socket.emit("response", output);
             }
 
             if (closing === ">" && !isTagOpen) {
               closing = "";
-              incomingMessage = "";
               socket.emit("chatend");
-              return;
             }
           });
 
@@ -321,9 +330,29 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
         }
       );
 
+      function removeNewlinesAndSpaces(text: string) {
+        return text.replace(/(\.\s+|\n+)/g, "");
+      }
+
+      if (incomingMessage === "") {
+        socket.emit("chatend");
+        incomingMessage = "";
+      }
+
       socket.on("message", (message) => {
+        incomingMessage = removeNewlinesAndSpaces(
+          message.trim().toLocaleLowerCase()
+        );
+
+        if (incomingMessage === "") {
+          socket.emit("response", "");
+          socket.emit("chatend");
+          incomingMessage = "";
+          return;
+        }
+
         if (program && program.stdin) {
-          program.stdin.write(message + "\n");
+          program.stdin.write(removeNewlinesAndSpaces(message) + "\n");
         }
       });
 

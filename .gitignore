@@ -92,3 +92,6 @@ typings/
 
 # Electron-Forge
 out/
+._main
+._out 
+._.next
