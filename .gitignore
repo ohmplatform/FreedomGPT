@@ -92,3 +92,6 @@ typings/
 
 # Electron-Forge
 out/
+
+yarn.lock
+package-lock.json

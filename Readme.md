@@ -58,11 +58,6 @@ cmake --build . --config Release
 
 - You should now have a `Release` folder with a `main.exe` file inside it. You can run this file to test the chat client.
 
-## Changing the API URL
-
-We are using `http://localhost:8889` as the API URL, you can change it in the file
-`src/index.ts`
-
 ## Running the application
 
 To run the application, run the following command in your terminal:
@@ -71,25 +66,6 @@ To run the application, run the following command in your terminal:
 yarn start
 
 ⦻ Make sure you are in the root directory of the project.
-```
-
-## Dockerizing the application
-
-To run the docker image, run the following command in your terminal:
-
-```sh
-docker pull freedomgpt/freedomgpt
-docker run -d -p 8889:8889 freedomgpt/freedomgpt
-```
-
-If you want to build the docker image yourself, run the following command in your terminal:
-
-```sh
-docker build -t freedomgpt/freedomgpt .
-
-OR
-
-yarn docker
 ```
 
 <!-- ## Working Video

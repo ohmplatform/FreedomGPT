@@ -1,4 +1,5 @@
-import { FC, useContext, useEffect, useReducer, useRef } from 'react';
+import { IconX } from '@tabler/icons-react';
+import { FC, useContext, useEffect, useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -23,6 +24,7 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
   });
   const { dispatch: homeDispatch } = useContext(HomeContext);
   const modalRef = useRef<HTMLDivElement>(null);
+  const { dispatch: dispatchHome } = useContext(HomeContext);
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -48,6 +50,16 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
     saveSettings(state);
   };
 
+  const handleOpenChatbar = () => {
+    dispatchHome({ field: 'showChatbar', value: true });
+    localStorage.setItem('showChatbar', JSON.stringify(true));
+  };
+
+  const handleCloseChatbar = () => {
+    dispatchHome({ field: 'showChatbar', value: false });
+    localStorage.setItem('showChatbar', JSON.stringify(false));
+  };
+
   // Render nothing if the dialog is not open.
   if (!open) {
     return <></>;
@@ -65,9 +77,31 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
 
           <div
             ref={modalRef}
-            className="dark:border-netural-400 inline-block max-h-[400px] transform overflow-y-auto rounded-lg border border-gray-300 bg-white px-4 pt-5 pb-4 text-left align-bottom shadow-xl transition-all dark:bg-[#202123] sm:my-8 sm:max-h-[600px] sm:w-full sm:max-w-lg sm:p-6 sm:align-middle"
+            className="dark:border-netural-400 inline-block transform overflow-y-auto rounded-lg border border-gray-300 bg-white px-4 pt-5 pb-4 text-left align-bottom shadow-xl transition-all dark:bg-[#202123] sm:my-8 sm:w-full sm:max-w-lg sm:p-6 sm:align-middle"
             role="dialog"
           >
+            <div
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                cursor: 'pointer',
+                backgroundColor: '#000',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onClick={() => {
+                onClose();
+                handleOpenChatbar();
+              }}
+            >
+              <IconX size={20} color="#fff" />
+            </div>
+
             <div className="text-lg pb-4 font-bold text-black dark:text-neutral-200">
               {t('Settings')}
             </div>
@@ -79,24 +113,20 @@ export const SettingDialog: FC<Props> = ({ open, onClose }) => {
             <select
               className="w-full cursor-pointer bg-transparent p-2 text-neutral-700 dark:text-neutral-200"
               value={state.theme}
-              onChange={(event) =>
-                dispatch({ field: 'theme', value: event.target.value })
-              }
+              onChange={(event) => {
+                dispatch({ field: 'theme', value: event.target.value });
+
+                homeDispatch({ field: 'lightMode', value: event.target.value });
+
+                saveSettings({
+                  ...state,
+                  theme: event.target.value as 'dark' | 'light',
+                });
+              }}
             >
               <option value="dark">{t('Dark mode')}</option>
               <option value="light">{t('Light mode')}</option>
             </select>
-
-            <button
-              type="button"
-              className="w-full px-4 py-2 mt-6 border rounded-lg shadow border-neutral-500 text-neutral-900 hover:bg-neutral-100 focus:outline-none dark:border-neutral-800 dark:border-opacity-50 dark:bg-white dark:text-black dark:hover:bg-neutral-300"
-              onClick={() => {
-                handleSave();
-                onClose();
-              }}
-            >
-              {t('Save')}
-            </button>
           </div>
         </div>
       </div>

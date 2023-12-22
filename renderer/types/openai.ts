@@ -43,3 +43,5 @@ export const OpenAIModels: Record<OpenAIModelID, OpenAIModel> = {
     tokenLimit: 32000,
   },
 };
+
+export const OpenAIModelsList = Object.values(OpenAIModels);

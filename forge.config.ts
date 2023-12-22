@@ -1,4 +1,3 @@
-import { utils } from "@electron-forge/core";
 import MakerDMG from "@electron-forge/maker-dmg";
 import MakerSquirrel from "@electron-forge/maker-squirrel";
 import MakerZIP from "@electron-forge/maker-zip";

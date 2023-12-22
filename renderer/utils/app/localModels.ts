@@ -1,4 +1,4 @@
-import { PluginWithModel } from "@/types/plugin";
+import { PluginWithLocalModel } from "@/types/plugin";
 
 export type LocalModel = {
   id: string;
@@ -15,7 +15,7 @@ export type LocalModel = {
 };
 
 export const saveLocalModels = (
-  data: { modelData: PluginWithModel["config"] },
+  data: { modelData: PluginWithLocalModel["config"] },
   FILEPATH: string
 ) => {
   const alreadyDownloaded = localStorage.getItem("downloadedModels");
@@ -30,7 +30,7 @@ export const saveLocalModels = (
     const parsed: Array<{
       id: string;
       name: string;
-      config: PluginWithModel["config"];
+      config: PluginWithLocalModel["config"];
     }> = JSON.parse(alreadyDownloaded);
 
     // Check if the ID already exists
