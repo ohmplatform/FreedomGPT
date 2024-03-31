@@ -1,32 +1,18 @@
-import { PluginKeys } from "../Chatbar/components/PluginKeys";
-import NoModelImage from "../NoModelImage";
+import { EXPRESS_SERVER_PORT } from "../../../src/ports";
 import { ChatInput } from "./ChatInput";
 import { ChatLoader } from "./ChatLoader";
 import { ErrorMessageDiv } from "./ErrorMessageDiv";
+import LocalServerHandler from "./LocalServerHandler";
 import { MemoizedChatMessage } from "./MemoizedChatMessage";
 import { ModelSelect } from "./ModelSelect";
+import { SystemPrompt } from "./SystemPrompt";
 import { useModel } from "@/context/ModelSelection";
 import HomeContext from "@/pages/api/home/home.context";
-import socket from "@/socket/socket";
-import { ChatBody, Conversation, Message } from "@/types/chat";
-import { CloudModel, PluginWithModel } from "@/types/plugin";
-import { getEndpoint } from "@/utils/app/api";
-import {
-  getCurrentModelAPIKEY,
-  getDownloadedCloudModels,
-} from "@/utils/app/cloudModels";
-import {
-  saveConversation,
-  saveConversations,
-  updateConversation,
-} from "@/utils/app/conversation";
-import {
-  getLocalDownloadedModels,
-  isAnyLocalModelDownloaded,
-} from "@/utils/app/localModels";
+import { Conversation, Message } from "@/types/chat";
+import { CloudModel } from "@/types/plugin";
+import { saveConversation, saveConversations } from "@/utils/app/conversation";
 import { throttle } from "@/utils/data/throttle";
-import { IconClearAll, IconSettings } from "@tabler/icons-react";
-import axios from "axios";
+import { IconCaretUpFilled, IconMenu, IconSettings } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next";
 import {
   MutableRefObject,
@@ -43,18 +29,32 @@ interface Props {
   stopConversationRef: MutableRefObject<boolean>;
 }
 
+export interface ModelSettingsItem {
+  value: string;
+  label: string;
+  summarize: boolean;
+  prompt: {
+    value: string;
+    active: boolean;
+  };
+  promptSummary: {
+    value: string;
+    active: boolean;
+  };
+}
+
 export const Chat = memo(({ stopConversationRef }: Props) => {
   const { t } = useTranslation("chat");
-  const [content, setContent] = useState<string>("");
 
+  const getLastMessage = () => {
+    return localStorage.getItem("lastMessage");
+  };
   const {
     state: {
       selectedConversation,
       conversations,
       models,
-      apiKey,
       pluginKeys,
-      serverSideApiKeyIsSet,
       messageIsStreaming,
       modelError,
       loading,
@@ -66,30 +66,54 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
 
   const [currentMessage, setCurrentMessage] = useState<Message>();
   const [autoScrollEnabled, setAutoScrollEnabled] = useState<boolean>(true);
+  const [showModels, setShowModels] = useState<boolean>(false);
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [showScrollDownButton, setShowScrollDownButton] =
     useState<boolean>(false);
-
-  const { modelLoaded, modelLoading, selectedModel, setSelectedModel } =
+  const [content, setContent] = useState<string>(getLastMessage() || "");
+  const { selectedModel, setSelectedModel, modelLoading, localServer } =
     useModel();
-
-  const [latestModelResponse, setLatestModelResponse] = useState("");
-  const [plugin, setPlugin] = useState<PluginWithModel | null>(null);
-  const [localMessageStreaming, setLocalMessageStreaming] = useState(false);
-
+  const {
+    continueLength,
+    setContinueLength,
+    responseLength,
+    setResponseLength,
+  } = useModel();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [messageStatus, setMessageStatus] = useState<
+    "sending" | "sent" | "start" | "stop"
+  >("start");
+  const [stopInfiniteMessage, setStopInfiniteMessage] = useState(false);
+
+  const [modelSettings, setModelSettings] = useState<ModelSettingsItem>(
+    {} as any
+  );
 
   const handleSend = useCallback(
     async (
       message: Message,
       deleteCount = 0,
-      plugin: PluginWithModel | null = null
+      plugin: CloudModel = selectedModel
     ) => {
-      setLatestModelResponse("");
+      setShowModels(false);
+      setShowSettings(false);
+      setMessageStatus("sending");
+
+      if (localServer.serverStatus !== "running") {
+        toast.error(
+          t(
+            "Local server is not running. Please start the local server to continue."
+          )
+        );
+        return;
+      }
+
       if (selectedConversation) {
         let updatedConversation: Conversation;
+
         if (deleteCount) {
           const updatedMessages = [...selectedConversation.messages];
           for (let i = 0; i < deleteCount; i++) {
@@ -99,432 +123,247 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             ...selectedConversation,
             messages: [...updatedMessages, message],
           };
+        } else if (message.content === "continue") {
+          updatedConversation = selectedConversation;
         } else {
           updatedConversation = {
             ...selectedConversation,
             messages: [...selectedConversation.messages, message],
           };
         }
+
         homeDispatch({
           field: "selectedConversation",
           value: updatedConversation,
         });
-        homeDispatch({ field: "loading", value: true });
+
+        if (message.content !== "continue") {
+          homeDispatch({ field: "loading", value: true });
+        }
+
         homeDispatch({ field: "messageIsStreaming", value: true });
-        const chatBody: ChatBody = {
-          model: updatedConversation.model,
-          messages: updatedConversation.messages,
-          key: apiKey,
-          prompt: updatedConversation.prompt,
-          temperature: updatedConversation.temperature,
+
+        const chatBody = {
+          model: selectedModel,
+          messages: updatedConversation.messages.filter(
+            (message) => !message.model
+          ),
+          continueMessage: message.content === "continue" ? true : false,
         };
 
-        if (plugin) {
-          if (
-            getDownloadedCloudModels().find(
-              (model: CloudModel) => model.config.id === plugin.config.id
-            )
-          ) {
-            console.log("plugin.config.id", plugin.config.id);
-
-            if (updatedConversation.messages.length === 1) {
-              const { content } = message;
-              const customName =
-                content.length > 30
-                  ? content.substring(0, 30) + "..."
-                  : content;
-              updatedConversation = {
-                ...updatedConversation,
-                name: customName,
-              };
-            }
-
-            const endpoint = "/api/liberty";
-            const authKey = getCurrentModelAPIKEY(plugin.config.id);
-            const requestData = {
-              question: message.content,
-              authkey: authKey,
-            };
-
-            try {
-              const response = await axios.post(endpoint, requestData, {
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              });
-
-              // if (!response.data.success) {
-              //   homeDispatch({ field: "loading", value: false });
-              //   homeDispatch({ field: "messageIsStreaming", value: false });
-              //   toast.error("Error in API KEY");
-              //   return;
-              // }
-
-              const { answer } = response.data;
-
-              console.log(answer);
-              if (!response.data) {
-                homeDispatch({ field: "loading", value: false });
-                homeDispatch({ field: "messageIsStreaming", value: false });
-                return;
-              }
-
-              const updatedMessages: Message[] = [
-                ...updatedConversation.messages,
-                { role: "assistant", content: answer },
-              ];
-              updatedConversation = {
-                ...updatedConversation,
-                messages: updatedMessages,
-              };
-              homeDispatch({
-                field: "selectedConversation",
-                value: updateConversation,
-              });
-              saveConversation(updatedConversation);
-
-              const updatedConversations: Conversation[] = conversations.map(
-                (conversation) => {
-                  if (conversation.id === selectedConversation.id) {
-                    return updatedConversation;
-                  }
-                  return conversation;
-                }
-              );
-              if (updatedConversations.length === 0) {
-                updatedConversations.push(updatedConversation);
-              }
-              homeDispatch({
-                field: "conversations",
-                value: updatedConversations,
-              });
-              saveConversations(updatedConversations);
-              homeDispatch({ field: "loading", value: false });
-              homeDispatch({ field: "messageIsStreaming", value: false });
-
-              console.log(selectedConversation);
-            } catch (error) {
-              console.error("An error occurred:", error);
-            }
-            return;
-          }
-
-          const selectedPluginId = plugin.config.id;
-          const selectedPlugin = getLocalDownloadedModels().find(
-            (plugin: PluginWithModel) => plugin.config.id === selectedPluginId
-          );
-
-          if (selectedPlugin) {
-            socket.emit("message", message.content);
-
-            setLocalMessageStreaming(true);
-
-            setLatestModelResponse("");
-            homeDispatch({ field: "loading", value: true });
-            homeDispatch({ field: "messageIsStreaming", value: true });
-            if (updatedConversation.messages.length === 1) {
-              const { content } = message;
-              const customName =
-                content.length > 30
-                  ? content.substring(0, 30) + "..."
-                  : content;
-              updatedConversation = {
-                ...updatedConversation,
-                name: customName,
-              };
-            }
-            homeDispatch({ field: "loading", value: false });
-
-            let isFirst = true;
-
-            if (isFirst) {
-              isFirst = false;
-              const updatedMessages: Message[] = [
-                ...updatedConversation.messages,
-                {
-                  role: "assistant",
-                  content: latestModelResponse,
-                },
-              ];
-
-              updatedConversation = {
-                ...updatedConversation,
-                messages: updatedMessages,
-              };
-              homeDispatch({
-                field: "selectedConversation",
-                value: updatedConversation,
-              });
-            } else {
-              const updatedMessages: Message[] =
-                updatedConversation.messages.map((message, index) => {
-                  if (index === updatedConversation.messages.length - 1) {
-                    return {
-                      ...message,
-                      content: latestModelResponse,
-                    };
-                  }
-                  return message;
-                });
-              updatedConversation = {
-                ...updatedConversation,
-                messages: updatedMessages,
-              };
-              homeDispatch({
-                field: "selectedConversation",
-                value: updatedConversation,
-              });
-            }
-
-            const updatedConversations: Conversation[] = conversations.map(
-              (conversation) => {
-                if (conversation.id === selectedConversation.id) {
-                  return updatedConversation;
-                }
-                return conversation;
-              }
-            );
-            if (updatedConversations.length === 0) {
-              updatedConversations.push(updatedConversation);
-            }
-            homeDispatch({
-              field: "conversations",
-              value: updatedConversations,
-            });
-            saveConversations(updatedConversations);
-          }
-          return;
-        }
-
-        const endpoint = getEndpoint(plugin);
-        let body;
-        if (!plugin) {
-          body = JSON.stringify(chatBody);
-        }
+        let body = JSON.stringify(chatBody);
 
         const controller = new AbortController();
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          signal: controller.signal,
-          body,
-        });
+
+        const url = `http://localhost:${EXPRESS_SERVER_PORT}/api/edge`;
+        const response = await fetch(
+          url,
+
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            signal: controller.signal,
+            body,
+          }
+        );
+
         if (!response.ok) {
-          homeDispatch({ field: "loading", value: false });
-          homeDispatch({ field: "messageIsStreaming", value: false });
-          toast.error(response.statusText);
+          toast.error(
+            t(
+              `Something went wrong: ${
+                response.status
+              } "${await response.text()}"`
+            )
+          );
+
           return;
         }
         const data = response.body;
+
         if (!data) {
           homeDispatch({ field: "loading", value: false });
           homeDispatch({ field: "messageIsStreaming", value: false });
           return;
         }
 
-        if (!plugin) {
-          if (updatedConversation.messages.length === 1) {
-            const { content } = message;
-            const customName =
-              content.length > 30 ? content.substring(0, 30) + "..." : content;
+        if (updatedConversation.messages.length === 1) {
+          const { content } = message;
+          const customName =
+            content.length > 30 ? content.substring(0, 30) + "..." : content;
+          updatedConversation = {
+            ...updatedConversation,
+            name: customName,
+          };
+        }
+        homeDispatch({ field: "loading", value: false });
+        const reader = data.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+        let isFirst = true;
+        let text = "";
+        while (!done) {
+          if (stopConversationRef.current === true) {
+            controller.abort();
+            done = true;
+            break;
+          }
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          const chunkValue = decoder.decode(value);
+          text += chunkValue;
+          if (isFirst) {
+            isFirst = false;
+            let updatedMessages: Message[] = [];
+
+            if (message.content === "continue") {
+              let lastMessage =
+                updatedConversation.messages[
+                  updatedConversation.messages.length - 1
+                ];
+
+              let updatedLastMessage = {
+                ...lastMessage,
+                content: lastMessage.content + "\n" + chunkValue,
+              };
+
+              updatedMessages = [
+                ...updatedConversation.messages.slice(
+                  0,
+                  updatedConversation.messages.length - 1
+                ),
+                updatedLastMessage,
+              ];
+            } else {
+              updatedMessages = [
+                ...updatedConversation.messages,
+                {
+                  role: "assistant",
+                  content: chunkValue,
+                  summarized: false,
+                },
+              ];
+            }
+
             updatedConversation = {
               ...updatedConversation,
-              name: customName,
+              messages: updatedMessages,
             };
-          }
-          homeDispatch({ field: "loading", value: false });
-          const reader = data.getReader();
-          const decoder = new TextDecoder();
-          let done = false;
-          let isFirst = true;
-          let text = "";
-          while (!done) {
-            if (stopConversationRef.current === true) {
-              controller.abort();
-              done = true;
-              break;
-            }
-            const { value, done: doneReading } = await reader.read();
-            done = doneReading;
-            const chunkValue = decoder.decode(value);
-            text += chunkValue;
-            if (isFirst) {
-              isFirst = false;
-              const updatedMessages: Message[] = [
-                ...updatedConversation.messages,
-                { role: "assistant", content: chunkValue },
-              ];
-              updatedConversation = {
-                ...updatedConversation,
-                messages: updatedMessages,
-              };
-              homeDispatch({
-                field: "selectedConversation",
-                value: updatedConversation,
-              });
-            } else {
-              const updatedMessages: Message[] =
-                updatedConversation.messages.map((message, index) => {
-                  if (index === updatedConversation.messages.length - 1) {
+
+            homeDispatch({
+              field: "selectedConversation",
+              value: updatedConversation,
+            });
+          } else {
+            let updatedMessages: Message[] = updatedConversation.messages.map(
+              (messages, index) => {
+                if (index === updatedConversation.messages.length - 1) {
+                  if (message.content === "continue") {
+                    let lastMessage =
+                      updatedConversation.messages[
+                        updatedConversation.messages.length - 1
+                      ];
+
+                    let updatedLastMessage = {
+                      ...lastMessage,
+                      content: lastMessage.content + chunkValue,
+                    };
+
+                    return updatedLastMessage;
+                  } else {
                     return {
-                      ...message,
+                      ...messages,
                       content: text,
                     };
                   }
-                  return message;
-                });
-              updatedConversation = {
-                ...updatedConversation,
-                messages: updatedMessages,
-              };
-              homeDispatch({
-                field: "selectedConversation",
-                value: updatedConversation,
-              });
-            }
-          }
-          saveConversation(updatedConversation);
-          const updatedConversations: Conversation[] = conversations.map(
-            (conversation) => {
-              if (conversation.id === selectedConversation.id) {
-                return updatedConversation;
+                }
+                return messages;
               }
-              return conversation;
-            }
-          );
-          if (updatedConversations.length === 0) {
-            updatedConversations.push(updatedConversation);
+            );
+
+            updatedConversation = {
+              ...updatedConversation,
+              messages: updatedMessages,
+            };
+
+            homeDispatch({
+              field: "selectedConversation",
+              value: updatedConversation,
+            });
           }
-          homeDispatch({ field: "conversations", value: updatedConversations });
-          saveConversations(updatedConversations);
-          homeDispatch({ field: "messageIsStreaming", value: false });
-        } else {
-          const { answer } = await response.json();
-          const updatedMessages: Message[] = [
-            ...updatedConversation.messages,
-            { role: "assistant", content: answer },
-          ];
-          updatedConversation = {
-            ...updatedConversation,
-            messages: updatedMessages,
-          };
-          homeDispatch({
-            field: "selectedConversation",
-            value: updateConversation,
-          });
-          saveConversation(updatedConversation);
-          const updatedConversations: Conversation[] = conversations.map(
-            (conversation) => {
-              if (conversation.id === selectedConversation.id) {
-                return updatedConversation;
-              }
-              return conversation;
-            }
-          );
-          if (updatedConversations.length === 0) {
-            updatedConversations.push(updatedConversation);
-          }
-          homeDispatch({ field: "conversations", value: updatedConversations });
-          saveConversations(updatedConversations);
-          homeDispatch({ field: "loading", value: false });
-          homeDispatch({ field: "messageIsStreaming", value: false });
         }
+        localStorage.setItem("lastMessage" as string, "");
+
+        saveConversation(updatedConversation);
+        const updatedConversations: Conversation[] = conversations.map(
+          (conversation) => {
+            if (conversation.id === selectedConversation.id) {
+              return updatedConversation;
+            }
+            return conversation;
+          }
+        );
+
+        if (updatedConversations.length === 0) {
+          updatedConversations.push(updatedConversation);
+        }
+
+        homeDispatch({ field: "conversations", value: updatedConversations });
+        saveConversations(updatedConversations);
+        homeDispatch({ field: "messageIsStreaming", value: false });
+        homeDispatch({ field: "loading", value: false });
+        setMessageStatus("sent");
+        setResponseLength((responseLength) => responseLength + 1);
       }
     },
     [
-      apiKey,
       conversations,
       pluginKeys,
       selectedConversation,
       stopConversationRef,
-      latestModelResponse,
+      modelSettings,
+      localServer,
+      localServer.serverStatus,
     ]
   );
 
   useEffect(() => {
-    let message = "";
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setAutoScrollEnabled(entry.isIntersecting);
-        if (entry.isIntersecting) {
-          textareaRef.current?.focus();
-        }
-      },
-      {
-        root: null,
-        threshold: 0.5,
-      }
-    );
-
-    socket.on("response", (response: string) => {
-      if (response === content) {
-        return;
-      }
-
-      if (localMessageStreaming) {
-        message += response;
-      }
-
-      setLatestModelResponse(message);
-
-      if (
-        selectedConversation &&
-        message !== "" &&
-        message !== "\n" &&
-        message !== " " &&
-        message !== " \n"
-      ) {
-        selectedConversation.messages[
-          selectedConversation.messages.length - 1
-        ] = {
-          content: message,
-          role: "assistant",
-        };
-      }
-    });
-
-    const messagesEndElement = messagesEndRef.current;
-    socket.on("chatend", () => {
-      console.log("chat ended");
-      setLocalMessageStreaming(false);
-      setLatestModelResponse("");
-      message = "";
-
-      homeDispatch({ field: "loading", value: false });
-      homeDispatch({ field: "messageIsStreaming", value: false });
-      if (messagesEndElement) {
-        observer.observe(messagesEndElement);
-      }
-    });
-
-    return () => {
-      socket.off("response");
-      socket.off("chatend");
-      setLocalMessageStreaming(false);
-      if (messagesEndElement) {
-        observer.unobserve(messagesEndElement);
-      }
-    };
-  }, [selectedConversation, messagesEndRef]);
-
-  const scrollToBottom = useCallback(() => {
-    if (autoScrollEnabled) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      textareaRef.current?.focus();
+    if (
+      messageStatus === "sent" &&
+      responseLength < continueLength &&
+      !stopInfiniteMessage
+    ) {
+      handleSend(
+        {
+          role: "user",
+          content: "continue",
+        },
+        0,
+        selectedModel
+      );
+    } else if (messageStatus === "sent" && responseLength > continueLength) {
+      setResponseLength(0);
+      setContinueLength(0);
     }
-  }, [autoScrollEnabled]);
+
+    return () => {};
+  }, [responseLength, messageStatus, continueLength, setContinueLength]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [scrollToBottom]);
+    textareaRef && textareaRef.current?.focus();
+
+    const selectedModel = localStorage.getItem("selectedModel");
+    if (selectedModel) {
+      setSelectedModel(JSON.parse(selectedModel));
+    }
+  }, []);
 
   const handleScroll = () => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } =
         chatContainerRef.current;
-      const bottomTolerance = 30;
+      const bottomTolerance = 5;
 
       if (scrollTop + clientHeight < scrollHeight - bottomTolerance) {
         setAutoScrollEnabled(false);
@@ -543,8 +382,31 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     });
   };
 
+  const handleModels = () => {
+    setShowModels(!showModels);
+    setShowSettings(false);
+  };
   const handleSettings = () => {
     setShowSettings(!showSettings);
+    setShowModels(false);
+  };
+
+  const toggleSidebar = () => {
+    const chatBarState = localStorage.getItem("showChatbar");
+
+    if (chatBarState) {
+      homeDispatch({
+        field: "showChatbar",
+        value: chatBarState === "true" ? false : true,
+      });
+      localStorage.setItem(
+        "showChatbar",
+        JSON.stringify(chatBarState === "true" ? false : true)
+      );
+    } else {
+      homeDispatch({ field: "showChatbar", value: true });
+      localStorage.setItem("showChatbar", JSON.stringify(true));
+    }
   };
 
   const onClearAll = () => {
@@ -564,7 +426,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       messagesEndRef.current?.scrollIntoView(true);
     }
   };
-  const throttledScrollDown = throttle(scrollDown, 250);
+  const throttledScrollDown = throttle(scrollDown, 0);
 
   useEffect(() => {
     throttledScrollDown();
@@ -575,81 +437,77 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
   }, [selectedConversation, throttledScrollDown]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setAutoScrollEnabled(entry.isIntersecting);
-        if (entry.isIntersecting) {
-          textareaRef.current?.focus();
-        }
-      },
-      {
-        root: null,
-        threshold: 0.5,
+    function handleClickOutside(event: MouseEvent | TouchEvent | any) {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target) &&
+        !document.getElementById("modelToggle")?.contains(event.target) &&
+        !document.getElementById("settingsToggle")?.contains(event.target)
+      ) {
+        setShowModels(false);
+        setShowSettings(false);
       }
-    );
-    const messagesEndElement = messagesEndRef.current;
-    if (messagesEndElement) {
-      observer.observe(messagesEndElement);
     }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
-      if (messagesEndElement) {
-        observer.unobserve(messagesEndElement);
-      }
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [messagesEndRef]);
+  }, []);
 
-  if (!localStorage.getItem("apiKey") && !isAnyLocalModelDownloaded()) {
-    return (
-      <div
-        style={{
-          backgroundColor: "#fff",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100vw",
-          position: "relative",
-          flexDirection: "column",
-        }}
-      >
-        <p
-          style={{
-            fontSize: "2rem",
-            fontWeight: "500",
-            color: "#000",
-            marginBottom: "2rem",
-          }}
-        >
-          FreedomGPT
-        </p>
+  const saveModelSettings = () => {
+    let storedData = localStorage.getItem("modelSettings");
+    let settings = storedData ? JSON.parse(storedData) : [];
 
-        <p
-          style={{
-            fontSize: "2rem",
-            fontWeight: "300",
-            color: "#000",
-            marginBottom: "2rem",
-          }}
-        >
-          No Models Connected
-        </p>
-        <div
-          style={{
-            margin: "2rem",
-          }}
-        >
-          <NoModelImage />
-        </div>
-        <div
-          style={{
-            width: "40vw",
-          }}
-        >
-          <PluginKeys />
-        </div>
-      </div>
+    let itemIndex = settings.findIndex(
+      ({ value }: { value: string }) => value === modelSettings.value
     );
-  }
+
+    if (itemIndex !== -1) {
+      // Item already exists, update it
+      settings[itemIndex] = modelSettings;
+    } else if (modelSettings.value) {
+      // Item doesn't exist, add it to the array
+      settings.push(modelSettings);
+    }
+
+    localStorage.setItem("modelSettings", JSON.stringify(settings));
+  };
+
+  useEffect(() => {
+    saveModelSettings();
+  }, [modelSettings]);
+
+  useEffect(() => {
+    const savedModelSettings = localStorage.getItem("modelSettings")
+      ? JSON.parse(localStorage.getItem("modelSettings") as string)
+      : [];
+
+    const savedSelectedModelSettings = savedModelSettings.find(
+      (m: { value: string }) => m.value === selectedModel.id
+    );
+
+    if (savedSelectedModelSettings) {
+      setModelSettings(savedSelectedModelSettings);
+    } else {
+      setModelSettings((curr) => {
+        return {
+          value: selectedModel.id,
+          label: selectedModel.name,
+          summarize: false,
+          prompt: {
+            value: selectedModel.defaultPrompt,
+            active: false,
+          },
+          promptSummary: {
+            value: selectedModel.defaultSummaryPrompt,
+            active: false,
+          },
+        };
+      });
+    }
+  }, [selectedModel]);
 
   return (
     <div className="relative flex-1 overflow-hidden bg-white dark:bg-[#343541]">
@@ -662,74 +520,190 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             ref={chatContainerRef}
             onScroll={handleScroll}
           >
-            {selectedConversation?.messages.length === 0 ? (
-              <>
-                <div
-                  style={{
-                    height: "100vh",
-                    display: "flex",
-                    alignItems: "center",
-                    position: "relative",
-                    flexDirection: "column",
-                  }}
-                >
-                  <div className="text-center text-3xl font-semibold text-gray-800 dark:text-gray-100 mt-[10vw]">
-                    FreedomGPT
-                  </div>
+            <div className="sticky h-[58px] z-[1] top-0 flex justify-center items-center bg-neutral-100 dark:bg-[#202123] shadow ">
+              <button
+                className="h-[58px] px-3 py-4 cursor-pointer bg-[#202123]"
+                onClick={toggleSidebar}
+                disabled={messageIsStreaming}
+                style={{
+                  cursor:
+                    loading || messageIsStreaming ? "not-allowed" : "pointer",
+                  position: "absolute",
+                  left: "0",
+                }}
+              >
+                <IconMenu size={18} color={"#fff"} />
+              </button>
+              <div
+                id="modelToggle"
+                className="flex items-center grow text-left text-neutral-500 dark:text-neutral-200 border border-[#00000070] dark:border-[#ffffff70]"
+                style={{
+                  borderRadius: "0.375rem",
+                  maxWidth: Math.min(300, window.innerWidth),
+                  position: "relative",
+                }}
+              >
+                <div className="border-r border-[#00000070] dark:border-[#ffffff70] px-4 py-1 text-xs text-right leading-tight">
+                  <span className="text-[#00000097] dark:text-[#ffffff97] overflow-ellipsis whitespace-nowrap">
+                    {t("Selected")}
+                    <br />
+                    {t("Model")}
+                  </span>
+                </div>
 
-                  <div>
-                    <ModelSelect setPlugin={setPlugin} />
-                  </div>
+                <div className="grow flex justify-between">
+                  <button
+                    onClick={handleModels}
+                    disabled={messageIsStreaming}
+                    className="grow w-[130px] overflow-hidden overflow-ellipsis whitespace-nowrap text-left pl-4 font-bold"
+                  >
+                    {selectedModel.name}
+                  </button>
+
+                  {selectedModel.hasSettings && (
+                    <button
+                      id="settingsToggle"
+                      onClick={handleSettings}
+                      disabled={messageIsStreaming}
+                      style={{
+                        cursor:
+                          loading || messageIsStreaming
+                            ? "not-allowed"
+                            : "pointer",
+                        width: 44,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <IconSettings size={21} />
+                    </button>
+                  )}
+                  <button
+                    onClick={handleModels}
+                    disabled={messageIsStreaming}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 44,
+                      cursor:
+                        loading || messageIsStreaming
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    <IconCaretUpFilled
+                      size={21}
+                      className={!showModels ? "rotate-180" : ""}
+                    />
+                  </button>
                 </div>
-              </>
-            ) : (
+              </div>
+            </div>
+
+            {showModels && (
+              <div
+                style={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  paddingTop: 58,
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  zIndex: 2,
+                  overflow: "auto",
+                }}
+              >
+                <div
+                  ref={modalRef}
+                  className="flex flex-col space-y-10 md:mx-auto md:max-w-xl md:gap-6 md:py-3 lg:max-w-2xl lg:px-0 xl:max-w-3xl"
+                >
+                  <ModelSelect setShowModels={setShowModels} />
+                </div>
+              </div>
+            )}
+
+            {showSettings && (
+              <div
+                style={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  paddingTop: 58,
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  zIndex: 2,
+                  overflow: "auto",
+                }}
+              >
+                <div
+                  className="flex flex-col space-y-10 md:mx-auto md:max-w-xl md:gap-6 md:py-3 lg:max-w-2xl lg:px-0 xl:max-w-3xl"
+                  ref={modalRef}
+                >
+                  {selectedConversation && (
+                    <SystemPrompt
+                      conversation={selectedConversation}
+                      prompts={prompts}
+                      onChangePrompt={(key, prompt) =>
+                        handleUpdateConversation(selectedConversation, {
+                          key: key,
+                          value: prompt,
+                        })
+                      }
+                      handleSettings={handleSettings}
+                      location="popup"
+                      modelSettings={modelSettings}
+                      setModelSettings={setModelSettings}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selectedConversation?.messages.map((message, index) => (
+              <MemoizedChatMessage
+                key={index}
+                message={message}
+                messageIndex={index}
+                onEdit={(editedMessage) => {
+                  setCurrentMessage(editedMessage);
+                  handleSend(
+                    editedMessage,
+                    selectedConversation?.messages.length - index
+                  );
+                }}
+              />
+            ))}
+
+            {
               <>
-                <div className="sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm text-neutral-500 dark:border-none dark:bg-[#444654] dark:text-neutral-200">
-                  {t("Model")}: {selectedModel.toUpperCase() || "ChatGPT"}
-                  <button
-                    className="ml-2 cursor-pointer hover:opacity-50"
-                    onClick={handleSettings}
+                {localServer.serverStatus !== "running" && (
+                  <div
+                    style={{
+                      height: "70vh",
+                      display: "flex",
+                      alignItems: "center",
+                      position: "relative",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                    }}
                   >
-                    <IconSettings size={18} />
-                  </button>
-                  <button
-                    className="ml-2 cursor-pointer hover:opacity-50"
-                    onClick={onClearAll}
-                  >
-                    <IconClearAll size={18} />
-                  </button>
-                </div>
-                {showSettings && (
-                  <div className="flex flex-col space-y-10 md:mx-auto md:max-w-xl md:gap-6 md:py-3 md:pt-6 lg:max-w-2xl lg:px-0 xl:max-w-3xl">
-                    <div className="flex h-full flex-col space-y-4 border-b border-neutral-200 p-4 dark:border-neutral-600 md:rounded-lg md:border">
-                      <ModelSelect setPlugin={setPlugin} />
-                    </div>
+                    <LocalServerHandler />
                   </div>
                 )}
-
-                {selectedConversation?.messages.map((message, index) => (
-                  <MemoizedChatMessage
-                    key={index}
-                    message={message}
-                    messageIndex={index}
-                    onEdit={(editedMessage) => {
-                      setCurrentMessage(editedMessage);
-                      // discard edited message and the ones that come after then resend
-                      handleSend(
-                        editedMessage,
-                        selectedConversation?.messages.length - index
-                      );
-                    }}
-                  />
-                ))}
-
-                {loading && <ChatLoader />}
-
-                <div
-                  className="h-[162px] bg-white dark:bg-[#343541]"
-                  ref={messagesEndRef}
-                />
               </>
+            }
+
+            {loading && <ChatLoader />}
+
+            {selectedConversation?.messages.length !== 0 && (
+              <div
+                className="h-[162px] bg-white dark:bg-[#343541]"
+                ref={messagesEndRef}
+              />
             )}
           </div>
 
@@ -775,30 +749,25 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             </div>
           )}
 
-          {(localStorage.getItem("apiKey") || isAnyLocalModelDownloaded()) && (
-            <ChatInput
-              stopConversationRef={stopConversationRef}
-              textareaRef={textareaRef}
-              onSend={(message, plugin) => {
-                setCurrentMessage(message);
-                handleSend(message, 0, plugin);
-              }}
-              onScrollDownClick={handleScrollDown}
-              onRegenerate={(plugin) => {
-                if (currentMessage) {
-                  if (plugin) {
-                    socket.emit("message", currentMessage.content);
-                  }
-                  handleSend(currentMessage, 2, plugin);
-                }
-              }}
-              showScrollDownButton={showScrollDownButton}
-              plugin={plugin}
-              content={content}
-              setContent={setContent}
-              setPlugin={setPlugin}
-            />
-          )}
+          <ChatInput
+            stopConversationRef={stopConversationRef}
+            textareaRef={textareaRef}
+            onSend={(message, plugin) => {
+              setCurrentMessage(message);
+              handleSend(message, 0, plugin);
+            }}
+            onScrollDownClick={handleScrollDown}
+            onRegenerate={(model) => {
+              if (currentMessage) {
+                handleSend(currentMessage, 2, model);
+              }
+            }}
+            showScrollDownButton={showScrollDownButton}
+            content={content}
+            setContent={setContent}
+            modelSettings={modelSettings}
+            setStopInfiniteMessage={setStopInfiniteMessage}
+          />
         </>
       )}
     </div>

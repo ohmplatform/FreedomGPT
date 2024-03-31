@@ -1,6 +1,7 @@
-import { ErrorMessage } from "@/types/error";
-import { IconCircleX } from "@tabler/icons-react";
-import { FC } from "react";
+import { IconCircleX } from '@tabler/icons-react';
+import { FC } from 'react';
+
+import { ErrorMessage } from '@/types/error';
 
 interface Props {
   error: ErrorMessage;
@@ -15,11 +16,12 @@ export const ErrorMessageDiv: FC<Props> = ({ error }) => {
       <div className="mb-3 text-2xl font-medium">{error.title}</div>
       {error.messageLines.map((line, index) => (
         <div key={index} className="text-center">
-          {line}
+          {' '}
+          {line}{' '}
         </div>
       ))}
       <div className="mt-4 text-xs opacity-50 dark:text-red-400">
-        {error.code ? <i>Code: {error.code}</i> : ""}
+        {error.code ? <i>Code: {error.code}</i> : ''}
       </div>
     </div>
   );

@@ -1,18 +1,16 @@
-const colors = require("tailwindcss/colors");
-
 module.exports = {
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
+    './pages/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
   ],
-  darkMode: "class",
+  darkMode: 'class',
   theme: {
     extend: {},
   },
   variants: {
     extend: {
-      visibility: ["group-hover"],
+      visibility: ['group-hover'],
     },
   },
-  plugins: [require("@tailwindcss/typography")],
+  plugins: [require('@tailwindcss/typography')],
 };

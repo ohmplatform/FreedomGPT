@@ -1,7 +1,7 @@
 {
   "name": "freedomgpt",
   "productName": "freedomgpt",
-  "version": "2.1.4",
+  "version": "2.5.1",
   "description": "Our goal is to illustrate that AI Safety cannot be achieved through censorship. Let information flow freely, no matter how discomforting - because the truth shall set us free.",
   "main": "main/index.js",
   "scripts": {
@@ -16,8 +16,7 @@
     "make-win": "yarn make --platform=win32",
     "make-macArm": "yarn make --platform=darwin --arch=arm64",
     "make-macIntel": "yarn make --platform=darwin --arch=x64",
-    "push": "yarn version --patch && git push --follow-tags",
-    "docker": "cd docker-app && docker build -t freedomgpt/freedomgpt ."
+    "push": "yarn version --patch && git push --follow-tags"
   },
   "repository": {
     "type": "git",
@@ -102,6 +101,7 @@
     "eventsource-parser": "^0.1.0",
     "express": "^4.18.2",
     "i18next": "^22.4.13",
+    "iconsax-react": "^0.0.8",
     "next": "^13.4.4",
     "next-i18next": "^13.3.0",
     "openai": "^3.2.1",
@@ -111,7 +111,9 @@
     "react-i18next": "^12.2.0",
     "react-markdown": "^8.0.5",
     "react-query": "^3.39.3",
+    "react-spinners": "^0.13.8",
     "react-syntax-highlighter": "^15.5.0",
+    "react-tooltip": "^5.25.0",
     "rehype-mathjax": "^4.0.2",
     "remark-gfm": "^3.0.1",
     "remark-math": "^5.1.1",

@@ -2,12 +2,9 @@ import HomeContext from "./home.context";
 import { HomeInitialState, initialState } from "./home.state";
 import { Chat } from "@/components/Chat/Chat";
 import { Chatbar } from "@/components/Chatbar/Chatbar";
-import { Navbar } from "@/components/Mobile/Navbar";
-import Promptbar from "@/components/Promptbar";
-import { useModel } from "@/context/ModelSelection";
+import Loader from "@/components/Loader";
 import { useCreateReducer } from "@/hooks/useCreateReducer";
-import useErrorService from "@/services/errorService";
-import useApiService from "@/services/useApiService";
+import useWindowSize from "@/hooks/useWindowSize";
 import { Conversation } from "@/types/chat";
 import { KeyValuePair } from "@/types/data";
 import { FolderInterface, FolderType } from "@/types/folder";
@@ -26,12 +23,11 @@ import {
 import { saveFolders } from "@/utils/app/folders";
 import { savePrompts } from "@/utils/app/prompts";
 import { getSettings } from "@/utils/app/settings";
-import { GetStaticProps } from "next";
+import { GetServerSideProps, GetStaticProps } from "next";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import Head from "next/head";
-import { useEffect, useRef, useState } from "react";
-import { useQuery } from "react-query";
+import { useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 interface Props {
@@ -46,53 +42,48 @@ const Home = ({
   defaultModelId,
 }: Props) => {
   const { t } = useTranslation("chat");
-  const { getModels } = useApiService();
-  const { getModelsError } = useErrorService();
-  const [initialRender, setInitialRender] = useState<boolean>(true);
+  const { isMobile } = useWindowSize();
 
   const contextValue = useCreateReducer<HomeInitialState>({
     initialState,
   });
 
   const {
-    state: {
-      apiKey,
-      lightMode,
-      folders,
-      conversations,
-      selectedConversation,
-      prompts,
-      temperature,
-    },
+    state: { lightMode, folders, conversations, selectedConversation, prompts },
     dispatch,
   } = contextValue;
 
+  const handleOpenChatbar = () => {
+    dispatch({ field: "showChatbar", value: true });
+    localStorage.setItem("showChatbar", JSON.stringify(true));
+  };
+
   const stopConversationRef = useRef<boolean>(false);
 
-  const { data, error, refetch } = useQuery(
-    ["GetModels", apiKey, serverSideApiKeyIsSet],
-    ({ signal }) => {
-      if (!apiKey && !serverSideApiKeyIsSet) return null;
-
-      return getModels(
-        {
-          key: apiKey,
-        },
-        signal
-      );
-    },
-    { enabled: true, refetchOnMount: false }
-  );
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (data) dispatch({ field: "models", value: data });
-  }, [data, dispatch]);
+    const handleMouseDown = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        window.addEventListener("mouseup", handleMouseUp);
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      window.removeEventListener("mouseup", handleMouseUp);
+      handleOpenChatbar();
+    };
+
+    window.addEventListener("mousedown", handleMouseDown);
+
+    return () => {
+      window.removeEventListener("mousedown", handleMouseDown);
+    };
+  }, []);
 
   useEffect(() => {
-    dispatch({ field: "modelError", value: getModelsError(error) });
-  }, [dispatch, error, getModelsError]);
-
-  // FETCH MODELS ----------------------------------------------
+    handleOpenChatbar();
+  }, []);
 
   const handleSelectConversation = (conversation: Conversation) => {
     dispatch({
@@ -178,13 +169,6 @@ const Home = ({
       id: uuidv4(),
       name: t("New Conversation"),
       messages: [],
-      model: lastConversation?.model || {
-        id: OpenAIModels[defaultModelId].id,
-        name: OpenAIModels[defaultModelId].name,
-        maxLength: OpenAIModels[defaultModelId].maxLength,
-        tokenLimit: OpenAIModels[defaultModelId].tokenLimit,
-      },
-      prompt: DEFAULT_SYSTEM_PROMPT,
       temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
       folderId: null,
     };
@@ -217,14 +201,6 @@ const Home = ({
     dispatch({ field: "selectedConversation", value: single });
     dispatch({ field: "conversations", value: all });
   };
-
-  // EFFECTS  --------------------------------------------
-
-  useEffect(() => {
-    if (window.innerWidth < 640) {
-      dispatch({ field: "showChatbar", value: false });
-    }
-  }, [selectedConversation]);
 
   useEffect(() => {
     defaultModelId &&
@@ -268,11 +244,6 @@ const Home = ({
       localStorage.removeItem("pluginKeys");
     } else if (pluginKeys) {
       dispatch({ field: "pluginKeys", value: pluginKeys });
-    }
-
-    if (window.innerWidth < 640) {
-      dispatch({ field: "showChatbar", value: false });
-      dispatch({ field: "showPromptbar", value: false });
     }
 
     const showChatbar = localStorage.getItem("showChatbar");
@@ -352,47 +323,27 @@ const Home = ({
         handleUpdateConversation,
       }}
     >
-      <Head>
-        <title>FreedomGPT</title>
-        <meta name="description" content="ChatGPT but better." />
-        <meta
-          name="viewport"
-          content="height=device-height ,width=device-width, initial-scale=1, user-scalable=no"
-        />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <title>FreedomGPT</title>
+      <meta
+        name="description"
+        content="FreedomGPT 2.0 is your launchpad for AI. No technical knowledge should be required to use the latest AI models in both a private and secure manner. Unlike ChatGPT, the Liberty model included in FreedomGPT will answer any question without censorship, judgement, or risk of ‘being reported.’"
+      />
+      <meta
+        name="viewport"
+        content="height=device-height ,width=device-width, initial-scale=1, user-scalable=no"
+      />
+      <link rel="icon" href="/favicon.ico" />
       {selectedConversation && (
         <main
-          className={`flex h-screen w-screen flex-col text-sm text-white dark:text-white ${lightMode}`}
+          className={`flex w-screen flex-col text-sm text-white dark:text-white ${lightMode}`}
+          style={{
+            overflow: "auto",
+            height: isMobile ? "90vh" : "100vh",
+          }}
         >
-          <div className="fixed top-0 w-full sm:hidden">
-            <Navbar
-              selectedConversation={selectedConversation}
-              onNewConversation={handleNewConversation}
-            />
-          </div>
-
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              right: 0,
-              padding: "4px 8px",
-              zIndex: 10,
-            }}
-          >
-            <p className="text-black dark:text-white text-md">
-              FreedomGPT v2.0.0
-            </p>
-          </div>
-
-          <div className="flex h-full w-full pt-[48px] sm:pt-0">
+          <div className="flex h-full w-full">
             <Chatbar />
-            <div className="flex flex-1">
-              <Chat stopConversationRef={stopConversationRef} />
-            </div>
-
-            {/* <Promptbar /> */}
+            <Chat stopConversationRef={stopConversationRef} />
           </div>
         </main>
       )}

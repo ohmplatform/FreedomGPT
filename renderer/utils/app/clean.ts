@@ -12,22 +12,6 @@ export const cleanSelectedConversation = (conversation: Conversation) => {
 
   let updatedConversation = conversation;
 
-  // check for model on each conversation
-  if (!updatedConversation.model) {
-    updatedConversation = {
-      ...updatedConversation,
-      model: updatedConversation.model || OpenAIModels[OpenAIModelID.GPT_3_5],
-    };
-  }
-
-  // check for system prompt on each conversation
-  if (!updatedConversation.prompt) {
-    updatedConversation = {
-      ...updatedConversation,
-      prompt: updatedConversation.prompt || DEFAULT_SYSTEM_PROMPT,
-    };
-  }
-
   if (!updatedConversation.temperature) {
     updatedConversation = {
       ...updatedConversation,

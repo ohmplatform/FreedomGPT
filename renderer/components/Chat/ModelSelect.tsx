@@ -1,203 +1,114 @@
-import { useModel } from "@/context/ModelSelection";
-import HomeContext from "@/pages/api/home/home.context";
-import socket from "@/socket/socket";
-import { CloudModel, PluginWithModel } from "@/types/plugin";
-import {
-  getDownloadedCloudModels,
-  isAnyCloudModelDownloaded,
-} from "@/utils/app/cloudModels";
-import {
-  getLocalDownloadedModels,
-  isAnyLocalModelDownloaded,
-} from "@/utils/app/localModels";
-import { useTranslation } from "next-i18next";
-import { useContext, useRef, useState } from "react";
+import { IconCircleLetterF } from '@tabler/icons-react';
+import { Fragment, useContext } from 'react';
+
+import Link from 'next/link';
+
+import { modelTypes } from '@/types/plugin';
+
+import HomeContext from '@/pages/api/home/home.context';
+
+import { useModel } from '@/context/ModelSelection';
+import socket from '@/socket/socket';
 
 export const ModelSelect = ({
-  setPlugin,
+  setShowModels,
 }: {
-  setPlugin: (plugin: any) => void;
+  setShowModels: (value: boolean) => void;
 }) => {
-  const { t } = useTranslation("chat");
+  const { models, setSelectedModel } = useModel();
+  const {
+    state: { lightMode },
+    dispatch: homeDispatch,
+  } = useContext(HomeContext);
 
-  const { setSelectedModel, selectedModel, selectLocalModel } = useModel();
-  const [threads, setThreads] = useState(5);
+  const isLightMode = lightMode === 'light';
 
-  const selectRef = useRef<HTMLSelectElement>(null);
+  const storedFavoritedModels = localStorage.getItem('favoriteModels');
+  const favoriteModels = storedFavoritedModels
+    ? JSON.parse(storedFavoritedModels)
+    : [];
 
-  const { dispatch: homeDispatch } = useContext(HomeContext);
+  const modelsGrouped = modelTypes
+    .map((type) => ({
+      ...type,
+      cloudModels: models
+        .filter((m) => favoriteModels.includes(m.id))
+        .filter((m) => m.type.includes(type.id)),
+    }))
+    .filter((type) => type.cloudModels.length);
+
+  const Model = ({ model }: { model: any }) => {
+    const thisModelData = models.find((m) => m.id === model.id);
+
+    return (
+      <button
+        onClick={() => {
+          homeDispatch({ field: 'messageIsStreaming', value: false });
+
+          localStorage.setItem('selectedModel', JSON.stringify(model));
+
+          setSelectedModel(model);
+          setShowModels(false);
+          if (socket) socket.emit('kill_process');
+        }}
+        className="p-3 border-b border-[#DEDEDE] border-solid"
+      >
+        <div className="flex justify-between">
+          <p className="text-black text-lg font-medium dark:text-[#fff]">
+            {model.name}
+          </p>
+          <div>
+            {thisModelData?.tags.filter((t) => t !== 'all').length ? (
+              <p className="bg-gray-300 rounded-md text-black text-xs py-1 px-2">
+                {thisModelData?.tags.filter((t) => t !== 'all').join(', ')}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex items-center">
+          <IconCircleLetterF
+            color={isLightMode ? '#5C5C5C' : '#dbdbdb'}
+            size={16}
+          />
+          <p className="text-[#5C5C5C] ml-1 dark:text-[#dbdbdb]">
+            0 credits/
+            {thisModelData?.type.includes('image') ? 'image' : 'message'}
+          </p>
+        </div>
+      </button>
+    );
+  };
 
   return (
-    <div
-      className="flex flex-col"
-      style={{
-        width: "40vw",
-      }}
-    >
-      <label className="mb-5 mt-4 text-center text-neutral-700 dark:text-neutral-400">
-        {t("Select a Model")}
-      </label>
-      <div className="w-full  border-neutral-200 bg-transparent pr-2 text-neutral-900 dark:border-neutral-600 dark:text-white">
-        <select
-          ref={selectRef}
-          className="w-full cursor-pointer bg-transparent p-2 m-2"
-          style={{
-            height: "5rem",
-            border: "1px solid #000",
-          }}
-          placeholder={t("Select a Model") || ""}
-          disabled={
-            localStorage.getItem("apiKey") === null &&
-            !isAnyLocalModelDownloaded() &&
-            !isAnyCloudModelDownloaded()
-          }
-          onChange={(e) => {
-            console.log("e.target.value", e.target.value);
-            homeDispatch({ field: "messageIsStreaming", value: false });
-
-            if (!e.target.value) {
-              setSelectedModel("");
-              socket.emit("kill_process");
-              setPlugin("");
-              return;
-            }
-
-            setPlugin(
-              getLocalDownloadedModels().find(
-                (plugin: PluginWithModel) => plugin.config.id === e.target.value
-              ) ||
-                getDownloadedCloudModels().find(
-                  (plugin: CloudModel) => plugin.config.id === e.target.value
-                )
-            );
-
-            setSelectedModel(e.target.value);
-
-            if (e.target.value) {
-              const selectedPluginId = e.target.value;
-              const selectedPlugin = getLocalDownloadedModels().find(
-                (plugin: PluginWithModel) =>
-                  plugin.config.id === selectedPluginId
-              );
-
-              if (selectedPlugin) {
-                selectLocalModel({
-                  model: selectedPlugin.config.id,
-                  FILEPATH: getLocalDownloadedModels().find(
-                    (plugin: PluginWithModel) =>
-                      plugin.config.id === selectRef.current?.value
-                  )?.FILEPATH,
-                });
-              }
-            }
-          }}
-          value={selectedModel}
-        >
-          {localStorage.getItem("apiKey") && (
-            <option key="chatgpt" className="options" value="">
-              ChatGPT
-            </option>
-          )}
-
-          {!localStorage.getItem("apiKey") && !isAnyLocalModelDownloaded() && (
-            <option key="" value="" disabled>
-              No Models Available
-            </option>
-          )}
-
-          {getLocalDownloadedModels().map((plugin: PluginWithModel) => {
-            return (
-              <option key={plugin.config.id} value={plugin.config.id}>
-                {plugin.config.model.toLocaleUpperCase()}
-              </option>
-            );
-          })}
-
-          {getDownloadedCloudModels().map((model: CloudModel) => {
-            return (
-              <option key={model.config.id} value={model.config.id}>
-                {model.config.model.toLocaleUpperCase()}
-              </option>
-            );
-          })}
-        </select>
-      </div>
-
-      {selectRef.current?.value &&
-        !localStorage.getItem("apiKey") &&
-        !selectedModel && (
-          <>
-            <label className="mb-2 text-center text-black dark:text-white mt-5">
-              Number of Threads to use (Optional)
-            </label>
-
-            <span className="mt-2 mb-1 text-center text-neutral-900 dark:text-neutral-100">
-              {threads}
-            </span>
-            <input
-              className="cursor-pointer"
-              type="range"
-              min={0}
-              max={8}
-              step={1}
-              value={threads}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                const newValue = parseFloat(event.target.value);
-                setThreads(newValue);
-              }}
-            />
-            <button
-              className="py-2 px-4 rounded-md bg-blue-500 hover:bg-blue-600 text-white font-medium mt-5"
-              onClick={() => {
-                console.log(
-                  selectRef.current?.value,
-                  getLocalDownloadedModels()[0].id
-                );
-
-                selectLocalModel({
-                  model:
-                    selectRef.current?.value ||
-                    getLocalDownloadedModels()[0].id,
-                  FILEPATH: getLocalDownloadedModels().find(
-                    (plugin: PluginWithModel) =>
-                      plugin.config.id ===
-                      (selectRef.current?.value ||
-                        getLocalDownloadedModels()[0].id)
-                  )?.FILEPATH,
-                  extraArgs: {
-                    t: `${threads}`,
-                  },
-                });
-
-                setPlugin(
-                  getLocalDownloadedModels().find(
-                    (plugin: PluginWithModel) =>
-                      plugin.config.id ===
-                      (selectRef.current?.value ||
-                        getLocalDownloadedModels()[0].id)
-                  )
-                );
-                setSelectedModel(
-                  selectRef.current?.value || getLocalDownloadedModels()[0].id
-                );
-              }}
+    <div className="flex flex-col w-full bg-white dark:bg-[#444654]">
+      {modelsGrouped.map((group) => (
+        <Fragment key={group.id}>
+          <div
+            className={`flex items-center border border-[#DEDEDE] border-solid rounded`}
+          >
+            <div
+              className="p-1"
+              style={{ backgroundColor: `${group.color}33` }}
             >
-              {t("Start Chatting")}
-            </button>
-
-            {/* <ul className="mt-2 pb-8 flex justify-between px-[24px] text-neutral-900 dark:text-neutral-100">
-              <li className="flex justify-center">
-                <span>{t("Precise")}</span>
-              </li>
-              <li className="flex justify-center">
-                <span>{t("Neutral")}</span>
-              </li>
-              <li className="flex justify-center">
-                <span>{t("Creative")}</span>
-              </li>
-            </ul> */}
-          </>
-        )}
+              {<group.icon color={group.color} size={20} />}
+            </div>
+            <p className="text-black ml-1.5 dark:text-white">{group.name}</p>
+          </div>
+          {group.cloudModels.map((model) => (
+            <Model model={model} key={model.id} />
+          ))}
+        </Fragment>
+      ))}
+      <Link href="ai-cortex" className="flex items-center justify-center my-6">
+        <div className="flex items-center justify-between py-2 px-3 rounded bg-[blue]">
+          <p className="mr-5 text-white font-bold underline">
+            Select more AIs now
+          </p>
+          <span className="p-1 bg-white rounded font-medium text-[blue]">
+            {models.filter((m) => m.isNew).length} NEW
+          </span>
+        </div>
+      </Link>
     </div>
   );
 };

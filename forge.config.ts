@@ -1,4 +1,3 @@
-import { utils } from "@electron-forge/core";
 import MakerDMG from "@electron-forge/maker-dmg";
 import MakerSquirrel from "@electron-forge/maker-squirrel";
 import MakerZIP from "@electron-forge/maker-zip";
@@ -15,7 +14,7 @@ const config: ForgeConfig = {
         : "./src/appicons/icons/mac/ico",
     extraResource: "./models",
     osxSign: {
-      identity: "Developer ID Application: Age of AI, LLC (TS4W464GMN)",
+      identity: "Developer ID Application: Ohm, Inc (F8Q3T6XF4Z)",
       optionsForFile: () => {
         return {
           entitlements: "./macbuild/entitlements.mac.plist",
@@ -26,7 +25,7 @@ const config: ForgeConfig = {
       tool: "notarytool",
       appleId: process.env.APPLE_ID as string,
       appleIdPassword: process.env.APPLE_ID_PASSWORD as string,
-      teamId: "TS4W464GMN",
+      teamId: "F8Q3T6XF4Z",
     },
     ignore: [/^\/llama\.cpp/, /^\/docker-app/, /^\/\.env/],
   },
