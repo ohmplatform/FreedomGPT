@@ -32,7 +32,7 @@ const io = new Server(expressServer, {
 const homeDir = app.getPath("home");
 
 export let server: import("child_process").ChildProcessWithoutNullStreams =
-  null as any;
+null as any;
 export let xmrig: import("child_process").ChildProcessWithoutNullStreams =
   null as any;
 
@@ -303,20 +303,23 @@ io.on("connection", (socket) => {
     }
 
     const FILEPATH = `${data.FILEPATH}`;
-    server = spawn(CHAT_SERVER_LOCATION, [
-      "-m",
-      FILEPATH,
-      "-c",
-      "2048",
-      "--port",
-      LLAMA_SERVER_PORT,
-    ]);
+    server = spawn(
+      CHAT_SERVER_LOCATION,
+      ["-m", FILEPATH, "-c", "2048", "--port", LLAMA_SERVER_PORT],
+      {
+        detached: false,
+        shell: true,
+        windowsHide: true,
+      }
+    );
 
     server.on("error", (err) => {
       console.error("Failed to start child process:", err);
     });
 
     server.stderr.on("data", (data) => {
+      console.log('stderr:', data.toString());
+
       const output = data.toString("utf8");
 
       if (output.includes("llama server listening")) {
@@ -464,25 +467,26 @@ const createWindow = async () => {
     },
   });
 
-  checkConnection().then(async () => {
-    // if (isOnline) {
-    //   console.log("Online");
+  checkConnection().then(async (isOnline) => {
+    if (isOnline) {
+      console.log("Online");
 
-    //   mainWindow.loadURL(`https://electron.chat.freedomgpt.com/`);
-    // } else {
-    console.log("No connection");
+      // mainWindow.loadURL(`http://localhost:3001`);
+      mainWindow.loadURL(`https://electron.chat.freedomgpt.com/`);
+    } else {
+      console.log("No connection");
 
-    await nextApp.prepare();
+      await nextApp.prepare();
 
-    createServer((req: any, res: any) => {
-      const parsedUrl = parse(req.url, true);
-      handle(req, res, parsedUrl);
-    }).listen(NEXT_APP_PORT, () => {
-      console.log(`> Ready on http://localhost:${NEXT_APP_PORT}`);
-    });
+      createServer((req: any, res: any) => {
+        const parsedUrl = parse(req.url, true);
+        handle(req, res, parsedUrl);
+      }).listen(NEXT_APP_PORT, () => {
+        console.log(`> Ready on http://localhost:${NEXT_APP_PORT}`);
+      });
 
-    mainWindow.loadURL(`http://localhost:${NEXT_APP_PORT}/`);
-    // }
+      mainWindow.loadURL(`http://localhost:${NEXT_APP_PORT}/`);
+    }
   });
 
   mainWindow.once("ready-to-show", () => {
