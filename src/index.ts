@@ -109,15 +109,6 @@ io.on("connection", (socket) => {
     getDeviceInfo();
   });
 
-  socket.on("delete_model", (data) => {
-    fs.unlink(data, (err) => {
-      if (err) {
-        console.error(err);
-        return;
-      }
-    });
-  });
-
   socket.on("choose_model", (data) => {
     const options = {
       defaultPath: DEFAULT_MODEL_LOCATION,
@@ -144,6 +135,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("download_model", (data) => {
+    let cancel;
     const selectedModel = data.model;
     const fileName = data.downloadURL.split("/").pop();
     const filePath = DEFAULT_MODEL_LOCATION + "/" + fileName;
@@ -161,76 +153,75 @@ io.on("connection", (socket) => {
     let lastPercentage = 0;
 
     const cancelDownload = () => {
-      writer.close();
-      fs.unlinkSync(downloadPath);
+      if (cancel) cancel();
+      if (fs.existsSync(downloadPath)) fs.unlinkSync(downloadPath);
       socket.emit("download_canceled");
     };
 
     dialog.showSaveDialog(options).then((result) => {
       if (result.canceled) {
         socket.emit("download_canceled");
-        console.log("Cancelled download");
+        return;
       }
-      if (!result.canceled) {
-        downloadPath = result.filePath as string;
-        writer = fs.createWriteStream(downloadPath);
-        socket.emit("download_begin");
 
-        axios({
-          url: data.downloadURL,
-          method: "GET",
-          responseType: "stream",
-        })
-          .then((response) => {
-            const contentLength = response.headers["content-length"];
-            response.data.pipe(writer);
+      downloadPath = result.filePath as string;
+      writer = fs.createWriteStream(downloadPath);
+      socket.emit("download_begin");
 
-            socket.emit("download_started", {
-              contentLength,
-              selectedModel,
-            });
+      const axiosCancelTokenSource = axios.CancelToken.source();
+      cancel = axiosCancelTokenSource.cancel;
 
-            let downloadedBytes = 0;
+      axios({
+        url: data.downloadURL,
+        method: "GET",
+        responseType: "stream",
+        cancelToken: axiosCancelTokenSource.token,
+      })
+        .then((response) => {
+          const contentLength = response.headers["content-length"];
+          response.data.pipe(writer);
 
-            response.data.on("data", (chunk: any) => {
-              downloadedBytes += chunk.length;
-              const percentage = Math.floor(
-                (downloadedBytes / Number(contentLength)) * 100
-              );
-
-              if (percentage > lastPercentage) {
-                lastPercentage = percentage;
-                socket.emit("download_progress", {
-                  percentage,
-                  downloadedBytes,
-                  contentLength,
-                  selectedModel,
-                });
-              }
-            });
-
-            writer.on("finish", () => {
-              console.log(`\nModel downloaded to ${downloadPath}`);
-
-              socket.emit("download_complete", {
-                downloadPath,
-                modelData: data,
-              });
-            });
-
-            writer.on("error", (err) => {
-              console.error("Failed to download model:", err);
-            });
-          })
-          .catch((error) => {
-            console.error("Failed to download model:", error);
-            if (fs.existsSync(downloadPath)) {
-              fs.unlinkSync(downloadPath);
-            }
-
-            socket.emit("download_model", data);
+          socket.emit("download_started", {
+            contentLength,
+            selectedModel,
           });
-      }
+
+          let downloadedBytes = 0;
+
+          response.data.on("data", (chunk: any) => {
+            downloadedBytes += chunk.length;
+            const percentage = Math.floor(
+              (downloadedBytes / Number(contentLength)) * 100
+            );
+
+            if (percentage > lastPercentage) {
+              lastPercentage = percentage;
+              socket.emit("download_progress", {
+                percentage,
+                downloadedBytes,
+                contentLength,
+                selectedModel,
+              });
+            }
+          });
+
+          writer.on("finish", () => {
+            console.log(`\nModel downloaded to ${downloadPath}`);
+
+            socket.emit("download_complete", {
+              downloadPath,
+              modelData: data,
+            });
+          });
+
+          writer.on("error", (err) => {
+            console.error("Failed to download model:", err);
+          });
+        })
+        .catch((error) => {
+          console.error('Axios error', error);
+          cancelDownload();
+        });
     });
 
     socket.on("cancel_download", () => {
