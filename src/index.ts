@@ -4,7 +4,7 @@ import checkDiskSpace from "check-disk-space";
 import { spawn } from "child_process";
 import cors from "cors";
 import { resolve } from "dns";
-import { BrowserWindow, app, autoUpdater } from "electron";
+import { BrowserWindow, app, autoUpdater, powerMonitor, powerSaveBlocker } from "electron";
 import { dialog } from "electron";
 import isDev from "electron-is-dev";
 import express from "express";
@@ -17,6 +17,8 @@ import { Server } from "socket.io";
 import { Readable } from "stream";
 import update from "update-electron-app";
 import { parse } from "url";
+
+let mainWindow;
 
 const expressapp = express();
 expressapp.use(express.json());
@@ -76,7 +78,12 @@ const checkConnection = (simulateOffline?): Promise<boolean> => {
 io.on("connection", (socket) => {
   console.log("socket connected");
 
-  const getDeviceInfo = () => {
+  socket.on('get_electron_version', () => {
+    socket.emit('electron_version', app.getVersion());
+  });
+
+  // LLM INFERENCE
+  socket.on('get_device_info', () => {
     const cpuInfo = os.cpus();
     const totalRAM = os.totalmem() / 1024 ** 3;
     const freeRAM = os.freemem() / 1024 ** 3;
@@ -104,10 +111,6 @@ io.on("connection", (socket) => {
       .catch((err) => {
         console.error(err);
       });
-  };
-
-  socket.on("get_device_info", () => {
-    getDeviceInfo();
   });
 
   socket.on("choose_model", (data) => {
@@ -358,6 +361,41 @@ io.on("connection", (socket) => {
       xmrig = null as any;
     }
   });
+
+
+  // POWER AND SYSTEM USAGE
+  powerMonitor.on('on-ac', () => {
+    socket.emit('on-ac');
+  });
+  powerMonitor.on('on-battery', () => {
+    socket.emit('on-battery');
+  });
+
+  socket.on('get_system_idle_time', () => {
+    socket.emit('system_idle_time', powerMonitor.getSystemIdleTime());
+  });
+
+  let powerSaveId;
+  socket.on('set_power_save', (state) => {
+    if (state === 'start') {
+      powerSaveId = powerSaveBlocker.start('prevent-app-suspension');
+    } else {
+      if (powerSaveId) powerSaveBlocker.stop(powerSaveId);
+    }
+  });
+
+  mainWindow.on('focus', () => {
+    socket.emit('window_focus');
+  });
+  mainWindow.on('blur', () => {
+    socket.emit('window_blur');
+  });
+  mainWindow.on('minimize', () => {
+    socket.emit('window_minimize');
+  });
+  mainWindow.on('restore', () => {
+    socket.emit('window_restore');
+  });
 });
 
 const chat = async ({ promptToSend }) => {
@@ -451,7 +489,7 @@ expressServer.listen(EXPRESS_SERVER_PORT, () => {
 });
 
 const createWindow = async () => {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1920,
     height: 1080,
     webPreferences: {
