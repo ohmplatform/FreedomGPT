@@ -64,8 +64,9 @@ expressapp.use(cors());
 const nextApp = next({ dev: isDev, dir: app.getAppPath() + "/renderer" });
 const handle = nextApp.getRequestHandler();
 
-const checkConnection = (): Promise<boolean> => {
+const checkConnection = (simulateOffline?): Promise<boolean> => {
   return new Promise<boolean>((innerResolve) => {
+    if (simulateOffline) innerResolve(false);
     resolve("electron.chat.freedomgpt.com", (err) => {
       innerResolve(!err);
     });
@@ -73,7 +74,7 @@ const checkConnection = (): Promise<boolean> => {
 };
 
 io.on("connection", (socket) => {
-  console.log("connected");
+  console.log("socket connected");
 
   const getDeviceInfo = () => {
     const cpuInfo = os.cpus();
@@ -460,27 +461,23 @@ const createWindow = async () => {
     },
   });
 
-  checkConnection().then(async (isOnline) => {
-    if (isOnline) {
-      console.log("Online");
+  const isOnline = await checkConnection();
 
-      // mainWindow.loadURL(`http://localhost:3001`);
-      mainWindow.loadURL(`https://electron.chat.freedomgpt.com/`);
-    } else {
-      console.log("No connection");
+  if (isOnline) {
+    // mainWindow.loadURL(`http://localhost:3001`);
+    mainWindow.loadURL(`https://electron.chat.freedomgpt.com/`);
+  } else {
+    await nextApp.prepare();
 
-      await nextApp.prepare();
+    createServer((req: any, res: any) => {
+      const parsedUrl = parse(req.url, true);
+      handle(req, res, parsedUrl);
+    }).listen(NEXT_APP_PORT, () => {
+      console.log(`> Ready on http://localhost:${NEXT_APP_PORT}`);
+    });
 
-      createServer((req: any, res: any) => {
-        const parsedUrl = parse(req.url, true);
-        handle(req, res, parsedUrl);
-      }).listen(NEXT_APP_PORT, () => {
-        console.log(`> Ready on http://localhost:${NEXT_APP_PORT}`);
-      });
-
-      mainWindow.loadURL(`http://localhost:${NEXT_APP_PORT}/`);
-    }
-  });
+    mainWindow.loadURL(`http://localhost:${NEXT_APP_PORT}/`);
+  }
 
   mainWindow.once("ready-to-show", () => {
     update();
