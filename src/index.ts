@@ -259,7 +259,7 @@ io.on("connection", (socket) => {
 
     inferenceProcess.stdout.on("data", (data) => {
       console.log(data.toString("utf8"));
-      socket.emit("server_log", data.toString("utf8"));
+      socket.emit("inference_log", data.toString("utf8"));
     });
 
     inferenceProcess.stderr.on("error", (err) => {
@@ -279,7 +279,7 @@ io.on("connection", (socket) => {
 
   socket.on("kill_process", () => {
     if (inferenceProcess) {
-      socket.emit("inference_stopped");
+      socket.emit("model_stopped");
       inferenceProcess.kill();
       inferenceProcess = null as any;
     }
@@ -345,7 +345,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", (reason) => {
     console.log(`Socket disconnected: ${reason}`);
     if (inferenceProcess) {
-      socket.emit("inference_stopped", true);
+      socket.emit("model_stopped", true);
       inferenceProcess.kill();
       inferenceProcess = null as any;
     }
