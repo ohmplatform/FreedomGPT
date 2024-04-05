@@ -34,9 +34,9 @@ const io = new Server(expressServer, {
 
 const homeDir = app.getPath("home");
 
-export let server: import("child_process").ChildProcessWithoutNullStreams =
+export let inferenceProcess: import("child_process").ChildProcessWithoutNullStreams =
   null as any;
-export let xmrig: import("child_process").ChildProcessWithoutNullStreams =
+export let xmrigProcess: import("child_process").ChildProcessWithoutNullStreams =
   null as any;
 
 const deviceisWindows = process.platform === "win32";
@@ -115,7 +115,8 @@ io.on("connection", (socket) => {
     });
   });
 
-  // LLM INFERENCE
+
+  // INFERENCE
   socket.on("choose_model", (data) => {
     const options = {
       defaultPath: DEFAULT_MODEL_LOCATION,
@@ -237,61 +238,50 @@ io.on("connection", (socket) => {
   });
 
   socket.on("select_model", (config) => {
-    if (server) {
-      server.kill();
-      server = null as any;
+    if (inferenceProcess) {
+      inferenceProcess.kill();
+      inferenceProcess = null as any;
     }
 
+    inferenceProcess = spawn(CHAT_SERVER_LOCATION, config);
 
-    server = spawn(CHAT_SERVER_LOCATION, config);
-
-    server.on("error", (err) => {
-      console.error("Failed to start child process:", err);
+    inferenceProcess.on("error", (err) => {
+      console.error("Failed to start Inference process:", err);
     });
 
-    server.stderr.on("data", (data) => {
+    inferenceProcess.stderr.on("data", (data) => {
       const output = data.toString("utf8");
 
       if (output.includes("llama server listening")) {
-        socket.emit("model_loading", false);
-        socket.emit("model_loaded", true);
+        socket.emit("model_loaded");
       }
     });
 
-    server.stdout.on("data", (data) => {
+    inferenceProcess.stdout.on("data", (data) => {
       console.log(data.toString("utf8"));
       socket.emit("server_log", data.toString("utf8"));
     });
 
-    server.stderr.on("error", (err) => {
-      console.error("Failed to start child process:", err);
+    inferenceProcess.stderr.on("error", (err) => {
+      console.error("Failed to start Inference process:", err);
     });
 
-    server.on("exit", (code, signal) => {
+    inferenceProcess.on("exit", (code, signal) => {
       console.log(
-        `Child process exited with code ${code} and signal ${signal}`
+        `Inference process exited with code ${code} and signal ${signal}`
       );
     });
 
-    server.on("spawn", () => {
-      socket.emit("model_loading", true);
+    inferenceProcess.on("spawn", () => {
+      socket.emit("model_loading");
     });
   });
 
-  socket.on("disconnect", (reason) => {
-    if (server) {
-      socket.emit("model_stopped", true);
-      server.kill();
-      server = null as any;
-    }
-    console.log(`Socket disconnected: ${reason}`);
-  });
-
   socket.on("kill_process", () => {
-    if (server) {
-      socket.emit("model_stopped", true);
-      server.kill();
-      server = null as any;
+    if (inferenceProcess) {
+      socket.emit("inference_stopped");
+      inferenceProcess.kill();
+      inferenceProcess = null as any;
     }
   });
 
@@ -301,57 +291,69 @@ io.on("connection", (socket) => {
   });
 
 
-  // MONERO MINER
+  // MINER
   socket.on("start_mining", (config) => {
     console.log("Starting mining");
-    if (xmrig) {
-      xmrig.kill();
-      xmrig = null as any;
+    if (xmrigProcess) {
+      xmrigProcess.kill();
+      xmrigProcess = null as any;
     }
 
-    xmrig = spawn(XMRIG_LOCATION, config);
+    xmrigProcess = spawn(XMRIG_LOCATION, config);
 
-    xmrig.on("error", (err) => {
-      console.error("Failed to start child process:", err);
+    xmrigProcess.on("error", (err) => {
+      console.error("Failed to start Mining process:", err);
     });
 
-    xmrig.stderr.on("data", (data) => {
+    xmrigProcess.stderr.on("data", (data) => {
       console.log(data.toString("utf8"));
       const output = data.toString("utf8");
 
       if (output.includes("pool")) {
-        socket.emit("mining_started", true);
+        socket.emit("mining_started");
       }
     });
 
-    xmrig.stdout.on("data", (data) => {
+    xmrigProcess.stdout.on("data", (data) => {
       console.log(data.toString("utf8"));
       socket.emit("xmr_log", data.toString("utf8"));
     });
 
-    xmrig.stderr.on("error", (err) => {
+    xmrigProcess.stderr.on("error", (err) => {
       console.log(err);
-      console.error("Failed to start child process:", err);
+      console.error("Failed to start Mining process:", err);
     });
 
-    xmrig.on("exit", (code, signal) => {
+    xmrigProcess.on("exit", (code, signal) => {
       console.log(
-        `Child process exited with code ${code} and signal ${signal}`
+        `Mining process exited with code ${code} and signal ${signal}`
       );
     });
 
-    xmrig.on("spawn", () => {
-      socket.emit("mining_started", true);
+    xmrigProcess.on("spawn", () => {
+      socket.emit("mining_started");
     });
   });
-
   socket.on("stop_mining", () => {
-    if (xmrig) {
-      xmrig.kill();
-      xmrig = null as any;
+    if (xmrigProcess) {
+      xmrigProcess.kill();
+      xmrigProcess = null as any;
+      socket.emit("mining_stopped");
     }
   });
 
+  socket.on("disconnect", (reason) => {
+    console.log(`Socket disconnected: ${reason}`);
+    if (inferenceProcess) {
+      socket.emit("inference_stopped", true);
+      inferenceProcess.kill();
+      inferenceProcess = null as any;
+    }
+    if (xmrigProcess) {
+      xmrigProcess.kill();
+      xmrigProcess = null as any;
+    }
+  });
 
   // POWER AND SYSTEM USAGE
   powerMonitor.on('on-ac', () => {
@@ -499,8 +501,7 @@ const createWindow = async () => {
   const isOnline = await checkConnection();
 
   if (isOnline) {
-    // mainWindow.loadURL(`http://localhost:3001`);
-    mainWindow.loadURL(`https://electron.chat.freedomgpt.com/`);
+    mainWindow.loadURL(app.isPackaged ? `https://electron.chat.freedomgpt.com/` : `http://localhost:3001`);
   } else {
     await nextApp.prepare();
 
