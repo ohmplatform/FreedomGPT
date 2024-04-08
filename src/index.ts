@@ -91,11 +91,7 @@ io.on("connection", (socket) => {
     const freeRAM = os.freemem() / 1024 ** 3;
     const usedRAM = totalRAM - freeRAM;
 
-    socket.emit("cpu_info", {
-      model: cpuInfo[0].model,
-      speed: cpuInfo[0].speed,
-      times: cpuInfo[0].times,
-    });
+    socket.emit("cpu_info", cpuInfo);
 
     socket.emit("ram_usage", {
       totalRAM: totalRAM.toFixed(2),
