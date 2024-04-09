@@ -246,7 +246,8 @@ io.on("connection", (socket) => {
     inferenceProcess = spawn(CHAT_SERVER_LOCATION, config);
 
     inferenceProcess.on("error", (err) => {
-      console.error("Failed to start Inference process:", err);
+      console.error("Failed to start Inference process: (1)", err);
+      socket.emit("inference_log", `Failed to start Inference process: (1) ${JSON.stringify(err)}`);
     });
 
     inferenceProcess.stderr.on("data", (data) => {
@@ -263,7 +264,8 @@ io.on("connection", (socket) => {
     });
 
     inferenceProcess.stderr.on("error", (err) => {
-      console.error("Failed to start Inference process:", err);
+      console.error("Failed to start Inference process: (2)", err);
+      socket.emit("inference_log", `Failed to start Inference process: (2) ${JSON.stringify(err)}`);
     });
 
     inferenceProcess.on("exit", (code, signal) => {
