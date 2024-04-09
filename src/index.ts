@@ -85,6 +85,10 @@ io.on("connection", (socket) => {
   socket.on('get_electron_version', () => {
     socket.emit('electron_version', app.getVersion());
   });
+  socket.on('set_login_item_settings', (settings) => {
+    app.setLoginItemSettings(settings);
+  });
+
   socket.on('get_device_info', () => {
     const cpuInfo = os.cpus();
     const totalRAM = os.totalmem() / 1024 ** 3;
