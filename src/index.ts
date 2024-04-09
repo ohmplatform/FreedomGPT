@@ -488,8 +488,8 @@ expressServer.listen(EXPRESS_SERVER_PORT, () => {
 
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
+    width: 1280,
+    height: 900,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: false,
