@@ -362,6 +362,9 @@ io.on("connection", (socket) => {
   socket.on('get_system_idle_time', () => {
     socket.emit('system_idle_time', powerMonitor.getSystemIdleTime());
   });
+  socket.on('get_on_battery', () => {
+    socket.emit('on_battery', powerMonitor.isOnBatteryPower());
+  });
 
   let powerSaveId;
   socket.on('set_power_save', (state) => {
