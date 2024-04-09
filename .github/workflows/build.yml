@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-macArm:
-    name: Build Arm Mac
+    name: Build - Mac (ARM)
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-latest-xlarge
     strategy:
@@ -27,24 +27,24 @@ jobs:
       - name: Yarn install
         run: yarn install
 
-      - name: Add MacOS certs
+      - name: Add macOS certs
         if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
         run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
         env:
           CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
 
-      - name: Build
+      - name: LLAMA - Make
         id: make_build
         run: |
           cd llama.cpp && LLAMA_METAL=1 make && cd ..
 
-      - name: Make directory
+      - name: LLAMA - Create directory
         id: make_directory
         run: |
           mkdir -p models/mac/llama
 
-      - name: Copy mac
+      - name: LLAMA - Copy files
         id: copy_mac
         run: |
           cp llama.cpp/server models/mac/llama && cp llama.cpp/ggml-metal.metal models/mac/llama
@@ -67,7 +67,7 @@ jobs:
             **/*.zip
 
   build-macIntel:
-    name: Build Intel Mac
+    name: Build - Mac (Intel)
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-latest
     strategy:
@@ -87,24 +87,24 @@ jobs:
       - name: Yarn install
         run: yarn install
 
-      - name: Add MacOS certs
+      - name: Add macOS certs
         if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
         run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
         env:
           CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
 
-      - name: Build
+      - name: LLAMA - Make
         id: make_build
         run: |
           cd llama.cpp && make && cd ..
 
-      - name: Make directory
+      - name: LLAMA - Create directory
         id: make_directory
         run: |
           mkdir -p models/mac/llama
 
-      - name: Copy mac
+      - name: LLAMA - Copy files
         id: copy_mac
         run: |
           cp llama.cpp/server models/mac/llama
@@ -128,7 +128,7 @@ jobs:
             !**/*.txt.zip
 
   build-windows:
-    name: Build Windows
+    name: Build - Windows
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
     strategy:
@@ -166,7 +166,7 @@ jobs:
         run: |
           mkdir -p models/windows/llama
 
-      - name: Copy windows
+      - name: Copy LLAMA
         id: copy_windows
         run: |
           cp llama.cpp/build/bin/Release/* models/windows/llama
