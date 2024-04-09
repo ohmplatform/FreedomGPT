@@ -14,7 +14,7 @@ const config: ForgeConfig = {
         : "./src/appicons/icons/mac/ico",
     extraResource: ["./models", "./miner"],
     osxSign: {
-      identity: "Developer ID Application: Ohm, Inc (F8Q3T6XF4Z)",
+      identity: "Developer ID Application: Age of AI, LLC (TS4W464GMN)",
       optionsForFile: () => {
         return {
           entitlements: "./macbuild/entitlements.mac.plist",
@@ -25,7 +25,7 @@ const config: ForgeConfig = {
       tool: "notarytool",
       appleId: process.env.APPLE_ID as string,
       appleIdPassword: process.env.APPLE_ID_PASSWORD as string,
-      teamId: "F8Q3T6XF4Z",
+      teamId: "TS4W464GMN",
     },
     ignore: [/^\/llama\.cpp/, /^\/docker-app/, /^\/\.env/],
   },
