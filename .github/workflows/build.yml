@@ -9,7 +9,7 @@ jobs:
   build-macArm:
     name: Build Arm Mac
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: macos-13-large
+    runs-on: flyci-macos-large-latest-m2
     strategy:
       matrix:
         os: [macos-latest]
