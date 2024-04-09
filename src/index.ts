@@ -53,11 +53,11 @@ const CHAT_SERVER_LOCATION = app.isPackaged
 
 const XMRIG_LOCATION = app.isPackaged
   ? deviceisWindows
-    ? process.resourcesPath + "/models/windows/xmr/xmrig.exe"
-    : process.resourcesPath + "/models/mac/xmr/xmrig"
+    ? process.resourcesPath + "/miner/windows/xmrig.exe"
+    : process.resourcesPath + "/miner/mac/xmrig"
   : deviceisWindows
-  ? process.cwd() + "/models/windows/xmr/xmrig.exe"
-  : process.cwd() + "/models/mac/xmr/xmrig";
+  ? process.cwd() + "/miner/windows/xmrig.exe"
+  : process.cwd() + "/miner/mac/xmrig"
 
 process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
 if (require("electron-squirrel-startup")) app.quit();

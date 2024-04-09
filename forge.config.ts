@@ -12,7 +12,7 @@ const config: ForgeConfig = {
       process.platform === "win32"
         ? "./src/appicons/icons/win/icon.ico"
         : "./src/appicons/icons/mac/ico",
-    extraResource: "./models",
+    extraResource: ["./models", "./miner"],
     osxSign: {
       identity: "Developer ID Application: Ohm, Inc (F8Q3T6XF4Z)",
       optionsForFile: () => {
