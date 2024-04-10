@@ -364,6 +364,12 @@ io.on("connection", (socket) => {
   powerMonitor.on('on-battery', () => {
     socket.emit('on-battery');
   });
+  powerMonitor.on('speed-limit-change', () => {
+    socket.emit('speed-limit-change');
+  });
+  powerMonitor.on('thermal-state-change', () => {
+    socket.emit('thermal-state-change');
+  });
 
   socket.on('get_system_idle_time', () => {
     socket.emit('system_idle_time', powerMonitor.getSystemIdleTime());
