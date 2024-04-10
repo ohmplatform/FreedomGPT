@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0"
-xmrig.exe
+fgptminer.exe
 pause

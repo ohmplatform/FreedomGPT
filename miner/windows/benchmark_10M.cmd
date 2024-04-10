@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0"
-xmrig.exe --bench=10M --submit
+fgptminer.exe --bench=10M --submit
 pause

@@ -1,7 +1,7 @@
 :: Example batch file for mining Raptoreum at a pool
 ::
 :: Format:
-::      xmrig.exe -a gr -o <pool address>:<pool port> -u <pool username/wallet> -p <pool password>
+::      fgptminer.exe -a gr -o <pool address>:<pool port> -u <pool username/wallet> -p <pool password>
 ::
 :: Fields:
 ::      pool address            The host name of the pool stratum or its IP address, for example raptoreumemporium.com
@@ -17,7 +17,7 @@
 
 cd /d "%~dp0"
 :: Use this command line to connect to non-SSL port
-xmrig.exe -a gr -o raptoreumemporium.com:3008 -u WALLET_ADDRESS -p x
+fgptminer.exe -a gr -o raptoreumemporium.com:3008 -u WALLET_ADDRESS -p x
 :: Or use this command line to connect to an SSL port
-:: xmrig.exe -a gr -o rtm.suprnova.cc:4273 --tls -u WALLET_ADDRESS -p x
+:: fgptminer.exe -a gr -o rtm.suprnova.cc:4273 --tls -u WALLET_ADDRESS -p x
 pause
