@@ -32,8 +32,6 @@ const io = new Server(expressServer, {
   },
 });
 
-const homeDir = app.getPath("home");
-
 export let inferenceProcess: import("child_process").ChildProcessWithoutNullStreams =
   null as any;
 export let xmrigProcess: import("child_process").ChildProcessWithoutNullStreams =
@@ -41,7 +39,7 @@ export let xmrigProcess: import("child_process").ChildProcessWithoutNullStreams 
 
 const deviceisWindows = process.platform === "win32";
 
-const DEFAULT_MODEL_LOCATION = homeDir + "/FreedomGPT";
+const DEFAULT_MODEL_LOCATION = `${app.getPath('documents')}/FreedomGPT`;
 
 const CHAT_SERVER_LOCATION = app.isPackaged
   ? deviceisWindows
