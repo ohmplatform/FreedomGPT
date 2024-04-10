@@ -71,7 +71,7 @@ const handle = nextApp.getRequestHandler();
 const checkConnection = (simulateOffline?): Promise<boolean> => {
   return new Promise<boolean>((innerResolve) => {
     if (simulateOffline) innerResolve(false);
-    resolve("electron.chat.freedomgpt.com", (err) => {
+    resolve("electron.freedomgpt.com", (err) => {
       innerResolve(!err);
     });
   });
@@ -119,7 +119,6 @@ io.on("connection", (socket) => {
     const options = {
       defaultPath: DEFAULT_MODEL_LOCATION,
       buttonLabel: "Choose",
-
       filters: [
         {
           name: "Model",
@@ -510,7 +509,7 @@ const createWindow = async () => {
   const isOnline = await checkConnection();
 
   if (isOnline) {
-    mainWindow.loadURL(app.isPackaged ? `https://electron.chat.freedomgpt.com/` : `http://localhost:3001`);
+    mainWindow.loadURL(app.isPackaged ? `https://electron.freedomgpt.com/` : `http://localhost:3001`);
   } else {
     await nextApp.prepare();
 
