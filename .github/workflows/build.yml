@@ -1,6 +1,12 @@
 name: Package and Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create new release'
+        required: true
+        type: boolean
   push:
     tags:
       - v*

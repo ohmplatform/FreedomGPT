@@ -6,6 +6,7 @@
   "main": "main/index.js",
   "scripts": {
     "start": "yarn build-electron && electron-forge start",
+    "push": "yarn version --patch && git push --follow-tags",
     "package": "electron-forge package",
     "make": "yarn build && electron-forge make",
     "publish": "electron-forge publish",
@@ -15,8 +16,7 @@
     "build-electron": "tsc -p src",
     "make-win": "yarn make --platform=win32",
     "make-macArm": "yarn make --platform=darwin --arch=arm64",
-    "make-macIntel": "yarn make --platform=darwin --arch=x64",
-    "push": "yarn version --patch && git push --follow-tags"
+    "make-macIntel": "yarn make --platform=darwin --arch=x64"
   },
   "repository": {
     "type": "git",
