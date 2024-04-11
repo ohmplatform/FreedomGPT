@@ -176,7 +176,7 @@ jobs:
       - name: Remove Mac files
         id: remove_mac_miner
         run: |
-          rm -r miner/mac && rm -r models/mac
+          rm -r miner/mac
 
       - name: Make
         run: yarn make
