@@ -158,20 +158,25 @@ jobs:
           fileName: "win-certificate.pfx"
           encodedString: ${{ secrets.CERTIFICATE_WINDOWS_PFX }}
 
-      - name: Build
+      - name: LLAMA - Make
         id: make_build
         run: |
           cd llama.cpp && mkdir build && cd build && cmake .. && cmake --build . --config Release && cd ../..
 
-      - name: Make directory
+      - name: LLAMA - Create directory
         id: make_directory
         run: |
           mkdir -p models/windows/llama
 
-      - name: Copy LLAMA
+      - name: LLAMA - Copy files
         id: copy_windows
         run: |
           cp llama.cpp/build/bin/Release/* models/windows/llama
+
+      - name: Remove Mac files
+        id: remove_mac_miner
+        run: |
+          rm -r miner/mac && rm -r models/mac
 
       - name: Make
         run: yarn make
