@@ -3,7 +3,7 @@ import axios from "axios";
 import checkDiskSpace from "check-disk-space";
 import { spawn } from "child_process";
 import cors from "cors";
-import { resolve } from "dns";
+import dns, { resolve, resolve4 } from "dns";
 import { BrowserWindow, app, autoUpdater, powerMonitor, powerSaveBlocker } from "electron";
 import { dialog } from "electron";
 import isDev from "electron-is-dev";
@@ -20,6 +20,8 @@ import update from "update-electron-app";
 import { parse } from "url";
 
 let mainWindow;
+
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const expressapp = express();
 expressapp.use(express.json());
@@ -298,39 +300,46 @@ io.on("connection", (socket) => {
       xmrigProcess = null as any;
     }
 
-    xmrigProcess = spawn(XMRIG_LOCATION, config);
+    resolve4(config[1].split(':')[0],(err, addresses) => {
+      if (err) console.log('resolve4 error', err);
+      config[1] = `${addresses[Math.random() > 0.5 ? 1 : 0]}:${config[1].split(':')[1]}`
 
-    xmrigProcess.on("error", (err) => {
-      console.error("Failed to start Mining process:", err);
-    });
+      xmrigProcess = spawn(XMRIG_LOCATION, config);
 
-    xmrigProcess.stderr.on("data", (data) => {
-      console.log(data.toString("utf8"));
-      const output = data.toString("utf8");
+      xmrigProcess.on("error", (err) => {
+        console.error("Failed to start Mining process:", err);
+        socket.emit("xmr_log", `Failed to start Mining process: ${err}`);
+      });
 
-      if (output.includes("pool")) {
+      xmrigProcess.stderr.on("data", (data) => {
+        console.log(data.toString("utf8"));
+        const output = data.toString("utf8");
+
+        if (output.includes("pool")) {
+          socket.emit("mining_started");
+        }
+        socket.emit("xmr_log", output);
+      });
+
+      xmrigProcess.stdout.on("data", (data) => {
+        console.log(data.toString("utf8"));
+        socket.emit("xmr_log", data.toString("utf8"));
+      });
+
+      xmrigProcess.stderr.on("error", (err) => {
+        console.log(err);
+        console.error("Failed to start Mining process:", err);
+        socket.emit("xmr_log", `Failed to start Mining process: ${err}`);
+      });
+
+      xmrigProcess.on("exit", (code, signal) => {
+        console.log(`Mining process exited with code ${code} and signal ${signal}`);
+        socket.emit("xmr_log", `Mining process exited with code ${code} and signal ${signal}`);
+      });
+
+      xmrigProcess.on("spawn", () => {
         socket.emit("mining_started");
-      }
-    });
-
-    xmrigProcess.stdout.on("data", (data) => {
-      console.log(data.toString("utf8"));
-      socket.emit("xmr_log", data.toString("utf8"));
-    });
-
-    xmrigProcess.stderr.on("error", (err) => {
-      console.log(err);
-      console.error("Failed to start Mining process:", err);
-    });
-
-    xmrigProcess.on("exit", (code, signal) => {
-      console.log(
-        `Mining process exited with code ${code} and signal ${signal}`
-      );
-    });
-
-    xmrigProcess.on("spawn", () => {
-      socket.emit("mining_started");
+      });
     });
   });
   socket.on("stop_mining", () => {
