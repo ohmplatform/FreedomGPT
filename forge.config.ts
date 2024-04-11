@@ -43,6 +43,7 @@ const config: ForgeConfig = {
         owners: "Age of AI, LLC",
         authors: "Age of AI, LLC",
         copyright: "Age of AI, LLC",
+        loadingGif: "./src/loader/loader.gif",
       },
       ["win32"]
     ),
