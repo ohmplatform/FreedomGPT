@@ -18,6 +18,7 @@ import { Server } from "socket.io";
 import { Readable } from "stream";
 import update from "update-electron-app";
 import { parse } from "url";
+import machineUuid from 'machine-uuid';
 
 let mainWindow;
 
@@ -81,6 +82,10 @@ const checkConnection = (simulateOffline?): Promise<boolean> => {
 
 io.on("connection", (socket) => {
   console.log("socket connected");
+
+  machineUuid().then((uuid: string) => {
+    socket.emit("machine_id", uuid);
+  });
 
   socket.on('get_electron_version', () => {
     socket.emit('electron_version', app.getVersion());
