@@ -1,7 +1,7 @@
 import { EXPRESS_SERVER_PORT, LLAMA_SERVER_PORT, NEXT_APP_PORT } from "./ports";
 import axios from "axios";
 import checkDiskSpace from "check-disk-space";
-import { spawn } from "child_process";
+import { spawn, exec } from "child_process";
 import cors from "cors";
 import dns, { resolve, resolve4 } from "dns";
 import { BrowserWindow, app, autoUpdater, powerMonitor, powerSaveBlocker } from "electron";
@@ -19,6 +19,10 @@ import { Readable } from "stream";
 import update from "update-electron-app";
 import { parse } from "url";
 import machineUuid from 'machine-uuid';
+import util from 'util';
+import path from 'path';
+
+const execAsync = util.promisify(exec);
 
 let mainWindow;
 
@@ -76,6 +80,33 @@ const checkConnection = (simulateOffline?): Promise<boolean> => {
     if (simulateOffline) innerResolve(false);
     resolve("electron.freedomgpt.com", (err) => {
       innerResolve(!err);
+    });
+  });
+};
+
+const isVCRedistInstalled = async (): Promise<boolean> => {
+  const regKey = 'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\X64';
+  try {
+    const { stdout } = await execAsync(`reg query "${regKey}" /v Installed /reg:64`);
+    return stdout.includes('0x1');
+  } catch (error) {
+    console.error('Visual C++ Redistributable is not installed or an error occurred.');
+    return false;
+  }
+};
+const installVCRedist = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const vcRedistPath = path.join(app.getAppPath(), 'redist', 'vc_redist.x64.exe');
+    console.log('Starting Visual C++ Redistributable installation...');
+    const installer = spawn(vcRedistPath, ['/install', '/quiet', '/norestart']);
+    installer.on('close', (code) => {
+      if (code === 0) {
+        console.log('Visual C++ Redistributable installation succeeded.');
+        resolve();
+      } else {
+        console.error(`Visual C++ Redistributable installation failed with exit code: ${code}`);
+        reject(`Installation failed with exit code: ${code}`);
+      }
     });
   });
 };
@@ -247,40 +278,58 @@ io.on("connection", (socket) => {
       inferenceProcess = null as any;
     }
 
-    inferenceProcess = spawn(CHAT_SERVER_LOCATION, config);
-
-    inferenceProcess.on("error", (err) => {
-      console.error("Failed to start Inference process: (1)", err);
-      socket.emit("inference_log", `Failed to start Inference process: (1) ${JSON.stringify(err)}`);
-    });
-
-    inferenceProcess.stderr.on("data", (data) => {
-      const output = data.toString("utf8");
-
-      if (output.includes("llama server listening")) {
-        socket.emit("model_loaded");
+    const startInferenceProcess = async () => {
+      if (process.platform === "win32") {
+        const vcInstalled = await isVCRedistInstalled();
+        if (!vcInstalled) {
+          try {
+            await installVCRedist();
+            console.log('Successfully installed Visual C++ Redistributable.');
+          } catch (error) {
+            console.error('Could not install Visual C++ Redistributable. The application may not function correctly.', error);
+          }
+        } else {
+          console.log('Visual C++ Redistributable is already installed.');
+        }
       }
-    });
 
-    inferenceProcess.stdout.on("data", (data) => {
-      console.log(data.toString("utf8"));
-      socket.emit("inference_log", data.toString("utf8"));
-    });
+      inferenceProcess = spawn(CHAT_SERVER_LOCATION, config);
 
-    inferenceProcess.stderr.on("error", (err) => {
-      console.error("Failed to start Inference process: (2)", err);
-      socket.emit("inference_log", `Failed to start Inference process: (2) ${JSON.stringify(err)}`);
-    });
+      inferenceProcess.on("error", (err) => {
+        console.error("Failed to start Inference process: (1)", err);
+        socket.emit("inference_log", `Failed to start Inference process: (1) ${JSON.stringify(err)}`);
+      });
 
-    inferenceProcess.on("exit", (code, signal) => {
-      console.log(
-        `Inference process exited with code ${code} and signal ${signal}`
-      );
-    });
+      inferenceProcess.stderr.on("data", (data) => {
+        const output = data.toString("utf8");
 
-    inferenceProcess.on("spawn", () => {
-      socket.emit("model_loading");
-    });
+        if (output.includes("llama server listening")) {
+          socket.emit("model_loaded");
+        }
+      });
+
+      inferenceProcess.stdout.on("data", (data) => {
+        console.log(data.toString("utf8"));
+        socket.emit("inference_log", data.toString("utf8"));
+      });
+
+      inferenceProcess.stderr.on("error", (err) => {
+        console.error("Failed to start Inference process: (2)", err);
+        socket.emit("inference_log", `Failed to start Inference process: (2) ${JSON.stringify(err)}`);
+      });
+
+      inferenceProcess.on("exit", (code, signal) => {
+        console.log(
+          `Inference process exited with code ${code} and signal ${signal}`
+        );
+      });
+
+      inferenceProcess.on("spawn", () => {
+        socket.emit("model_loading");
+      });
+    };
+
+    startInferenceProcess();
   });
 
   socket.on("kill_process", () => {
@@ -307,7 +356,13 @@ io.on("connection", (socket) => {
 
     resolve4(config[1].split(':')[0],(err, addresses) => {
       if (err) console.log('resolve4 error', err);
-      config[1] = `${addresses[Math.random() > 0.5 ? 1 : 0]}:${config[1].split(':')[1]}`
+
+      if (addresses && addresses.length > 0) {
+        const addressIndex = addresses.length > 1 && Math.random() > 0.5 ? 1 : 0;
+        config[1] = `${addresses[addressIndex]}:${config[1].split(':')[1]}`;
+      } else {
+        console.log('No addresses found for the hostname.');
+      }
 
       xmrigProcess = spawn(XMRIG_LOCATION, config);
 
