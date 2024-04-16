@@ -1,7 +1,7 @@
 {
   "name": "freedomgpt",
   "productName": "FreedomGPT",
-  "version": "3.0.1-beta.0",
+  "version": "3.0.1-beta.1",
   "description": "Our goal is to illustrate that AI Safety cannot be achieved through censorship. Let information flow freely, no matter how discomforting - because the truth shall set us free.",
   "main": "main/index.js",
   "scripts": {
