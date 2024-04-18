@@ -1,11 +1,10 @@
+import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker } from "electron";
+import updateElectronApp from "update-electron-app";
 import { EXPRESS_SERVER_PORT, LLAMA_SERVER_PORT, NEXT_APP_PORT } from "./ports";
 import axios from "axios";
-import checkDiskSpace from "check-disk-space";
 import { spawn, exec } from "child_process";
 import cors from "cors";
 import dns, { resolve, resolve4 } from "dns";
-import { BrowserWindow, app, autoUpdater, powerMonitor, powerSaveBlocker } from "electron";
-import { dialog } from "electron";
 import isDev from "electron-is-dev";
 import express from "express";
 import fs from "fs";
@@ -16,7 +15,6 @@ import next from "next";
 import os from "os";
 import { Server } from "socket.io";
 import { Readable } from "stream";
-import update from "update-electron-app";
 import { parse } from "url";
 import machineUuid from 'machine-uuid';
 import util from 'util';
@@ -55,6 +53,7 @@ const CHAT_SERVER_LOCATION = app.isPackaged
   : deviceisWindows
   ? process.cwd() + "/llama.cpp/bin/Release/server"
   : process.cwd() + "/llama.cpp/server";
+let inferenceProcessIsStarting = false;
 
 const XMRIG_LOCATION = app.isPackaged
   ? deviceisWindows
@@ -94,10 +93,15 @@ const isVCRedistInstalled = async (): Promise<boolean> => {
     return false;
   }
 };
-const installVCRedist = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
+const installVCRedist = () => {
+  return new Promise<void>((resolve, reject) => {
     const vcRedistPath = path.join(app.getAppPath(), 'redist', 'vc_redist.x64.exe');
     console.log('Starting Visual C++ Redistributable installation...');
+
+    if (!fs.existsSync(vcRedistPath)) {
+      return reject(`The Visual C++ Redistributable installer was not found at the path: ${vcRedistPath}`);
+    }
+
     const installer = spawn(vcRedistPath, ['/install', '/quiet', '/norestart']);
     installer.on('close', (code) => {
       if (code === 0) {
@@ -137,17 +141,6 @@ io.on("connection", (socket) => {
       totalRAM: totalRAM.toFixed(2),
       freeRAM: freeRAM.toFixed(2),
       usedRAM: usedRAM.toFixed(2),
-    });
-
-    checkDiskSpace("/")
-      .then((diskSpace) => {
-        socket.emit("disk_usage", {
-          totalDisk: (diskSpace.size / 1024 ** 3).toFixed(2),
-          freeDisk: (diskSpace.free / 1024 ** 3).toFixed(2),
-        });
-      })
-      .catch((err) => {
-        console.error(err);
     });
   });
 
@@ -273,12 +266,12 @@ io.on("connection", (socket) => {
   });
 
   socket.on("select_model", (config) => {
-    if (inferenceProcess) {
-      inferenceProcess.kill();
-      inferenceProcess = null as any;
-    }
-
     const startInferenceProcess = async () => {
+      if (inferenceProcess) {
+        inferenceProcess.kill();
+        inferenceProcess = null as any;
+      }
+
       if (process.platform === "win32") {
         const vcInstalled = await isVCRedistInstalled();
         if (!vcInstalled) {
@@ -314,11 +307,13 @@ io.on("connection", (socket) => {
       });
 
       inferenceProcess.stderr.on("error", (err) => {
+        inferenceProcessIsStarting = false;
         console.error("Failed to start Inference process: (2)", err);
         socket.emit("inference_log", `Failed to start Inference process: (2) ${JSON.stringify(err)}`);
       });
 
       inferenceProcess.on("exit", (code, signal) => {
+        inferenceProcessIsStarting = false;
         console.log(
           `Inference process exited with code ${code} and signal ${signal}`
         );
@@ -326,10 +321,15 @@ io.on("connection", (socket) => {
 
       inferenceProcess.on("spawn", () => {
         socket.emit("model_loading");
+        inferenceProcessIsStarting = false;
       });
     };
 
-    startInferenceProcess();
+    if (!inferenceProcessIsStarting) {
+      console.log("Starting inference process");
+      startInferenceProcess();
+      inferenceProcessIsStarting = true;
+    }
   });
 
   socket.on("kill_process", () => {
@@ -348,7 +348,7 @@ io.on("connection", (socket) => {
 
   // MINER
   socket.on("start_mining", (config) => {
-    console.log("Starting mining");
+    console.log("Starting mining process");
     if (xmrigProcess) {
       xmrigProcess.kill();
       xmrigProcess = null as any;
@@ -578,7 +578,7 @@ const createWindow = async () => {
   const isOnline = await checkConnection();
 
   if (isOnline) {
-    mainWindow.loadURL(app.isPackaged ? `https://electron.freedomgpt.com/` : `http://localhost:3001`);
+    mainWindow.loadURL('https://electron.freedomgpt.com/');
   } else {
     await nextApp.prepare();
 
@@ -593,29 +593,7 @@ const createWindow = async () => {
   }
 
   mainWindow.once("ready-to-show", () => {
-    update();
-
-    autoUpdater.on("update-available", () => {
-      console.log("Update available");
-    });
-
-    autoUpdater.on("update-downloaded", () => {
-      console.log("Update downloaded");
-      autoUpdater.quitAndInstall();
-      app.quit();
-    });
-
-    autoUpdater.on("update-not-available", () => {
-      console.log("Update not available");
-    });
-
-    autoUpdater.on("error", (err) => {
-      console.log("Error in auto-updater. " + err);
-    });
-
-    autoUpdater.on("checking-for-update", () => {
-      console.log("Checking for update...");
-    });
+    updateElectronApp();
   });
 };
 
