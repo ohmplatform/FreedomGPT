@@ -1,12 +1,14 @@
 {
   "name": "freedomgpt",
   "productName": "FreedomGPT",
-  "version": "3.0.1-beta.2",
+  "version": "2.6.9",
   "description": "Our goal is to illustrate that AI Safety cannot be achieved through censorship. Let information flow freely, no matter how discomforting - because the truth shall set us free.",
   "main": "main/index.js",
   "scripts": {
     "start": "yarn build-electron && electron-forge start",
-    "push": "yarn version --patch && git push --follow-tags",
+    "push-update": "yarn version --patch && git push --follow-tags",
+    "update-version": "yarn version --new-version",
+    "push-build": "git push --follow-tags",
     "package": "electron-forge package",
     "make": "yarn build && electron-forge make",
     "publish": "electron-forge publish",
