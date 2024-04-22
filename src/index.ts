@@ -14,11 +14,11 @@ import md5File from "md5-file";
 import next from "next";
 import os from "os";
 import { Server } from "socket.io";
-import { Readable } from "stream";
 import { parse } from "url";
 import machineUuid from 'machine-uuid';
 import util from 'util';
 import path from 'path';
+import { Readable } from "stream";
 
 export let inferenceProcess: import("child_process").ChildProcessWithoutNullStreams =
   null as any;
@@ -468,7 +468,7 @@ io.on("connection", (socket) => {
   });
 });
 
-const chat = async ({ promptToSend }) => {
+const chat = async ({ data, endpoint = 'completion' }) => {
   const encoder = new TextEncoder();
   const stream = new Readable({
     read() {},
@@ -476,14 +476,10 @@ const chat = async ({ promptToSend }) => {
 
   const fetchStreamData = async () => {
     const result = await fetch(
-      `http://127.0.0.1:${LLAMA_SERVER_PORT}/completion`,
+      `http://127.0.0.1:${LLAMA_SERVER_PORT}/${endpoint}`,
       {
         method: "POST",
-        body: JSON.stringify({
-          prompt: promptToSend,
-          n_predict: 512,
-          stream: true,
-        }),
+        body: JSON.stringify(data),
         headers: {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
@@ -515,38 +511,13 @@ const chat = async ({ promptToSend }) => {
 };
 
 localServerApp.post("/api/edge", async (req, res) => {
-  const { messages, continueMessage } = req.body;
+  const { endpoint, data } = req.body;
 
   try {
-    let promptToSend = "";
-
-    let messagesToSend = messages;
-
-    if (continueMessage) {
-      messagesToSend = [
-        ...messagesToSend,
-        {
-          role: "user",
-          content: "continue",
-        },
-      ];
-    }
-
-    let conversation = messagesToSend
-      .map((message: any) => {
-        if (message.role === "user") {
-          return `USER: ${message.content}`;
-        } else if (message.role === "assistant") {
-          return `ASSISTANT: ${message.content}`;
-        }
-      })
-      .join("\n");
-
-    promptToSend += `USER:\n${conversation}\nASSISTANT:`;
-
     try {
       const streamResponse = await chat({
-        promptToSend,
+        data,
+        endpoint
       });
 
       res.set({ "Content-Type": "text/plain" });
@@ -578,7 +549,7 @@ const createWindow = async () => {
 
   const isOnline = await checkConnection();
 
-  if (isOnline) {
+  if (!isOnline) {
     mainWindow.loadURL(app.isPackaged ? `https://electron.freedomgpt.com/` : `http://localhost:3001`);
   } else {
     await offlineApp.prepare();

@@ -39,18 +39,6 @@ type ModelContextType = {
   setContinueLength: React.Dispatch<React.SetStateAction<number>>;
   responseLength: number;
   setResponseLength: React.Dispatch<React.SetStateAction<number>>;
-  miningStatus: {
-    miningStatus: string;
-    miningMessage: string;
-  };
-
-  setMiningStatus: (mining: any) => void;
-
-  xmrLogs: string;
-  setXmrLogs: (log: string) => void;
-
-  serverLogs: string;
-  setServerLogs: (log: string) => void;
 };
 
 export const ModelContext = createContext<ModelContextType | undefined>(
@@ -102,18 +90,6 @@ const ModelProvider = ({ children }: { children: React.ReactNode }) => {
     model: "",
   });
 
-  const [miningStatus, setMiningStatus] = useState<{
-    miningStatus: SERVER_STATUS;
-    miningMessage: string;
-  }>({
-    miningStatus: "stopped",
-    miningMessage: "",
-  });
-
-  const [xmrLogs, setXmrLogs] = useState<string>("");
-
-  const [serverLogs, setServerLogs] = useState<string>("");
-
   useEffect(() => {
     socket &&
       socket.on("selected_model", (model) => {
@@ -126,7 +102,7 @@ const ModelProvider = ({ children }: { children: React.ReactNode }) => {
     socket &&
       socket.on("model_loading", (loading) => {
         console.log("Model loading: ", loading);
-        setModelLoading(loading);
+        setModelLoading(true);
       });
   }, []);
 
@@ -146,24 +122,11 @@ const ModelProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     socket &&
-      socket.on("mining_started", (stop) => {
-        console.log("Model Stopped: ", stop);
-        if (stop) {
-          setMiningStatus({
-            miningStatus: "running",
-            miningMessage: "Mining is running",
-          });
-        }
-      });
-  }, []);
+      socket.on("model_loaded", () => {
+        console.log("Model loaded: ");
+        setModelLoaded(true);
 
-  useEffect(() => {
-    socket &&
-      socket.on("model_loaded", (loaded) => {
-        console.log("Model loaded: ", loaded);
-        setModelLoaded(loaded);
-
-        if (loaded) {
+        if (true) {
           setLocalServer({
             serverStatus: "running",
             serverMessage: "Local server is running",
@@ -190,20 +153,6 @@ const ModelProvider = ({ children }: { children: React.ReactNode }) => {
       socket.on("disk_usage", (usage) => {
         console.log("Disk usage: ", usage);
         setDiskUsage(usage);
-      });
-  }, []);
-
-  useEffect(() => {
-    socket &&
-      socket.on("xmr_log", (log) => {
-        setXmrLogs((prev) => prev + log);
-      });
-  }, []);
-
-  useEffect(() => {
-    socket &&
-      socket.on("server_log", (log) => {
-        setServerLogs((prev) => prev + log);
       });
   }, []);
 
@@ -246,12 +195,6 @@ const ModelProvider = ({ children }: { children: React.ReactNode }) => {
         setContinueLength,
         responseLength,
         setResponseLength,
-        miningStatus,
-        setMiningStatus,
-        xmrLogs,
-        setXmrLogs,
-        serverLogs,
-        setServerLogs,
       }}
     >
       {children}

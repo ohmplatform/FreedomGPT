@@ -143,15 +143,58 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
 
         homeDispatch({ field: "messageIsStreaming", value: true });
 
-        const chatBody = {
-          model: selectedModel,
-          messages: updatedConversation.messages.filter(
-            (message) => !message.model
-          ),
-          continueMessage: message.content === "continue" ? true : false,
+        const messages = updatedConversation.messages.filter(
+          (message) => !message.model
+        );
+
+        const continueMessage = message.content === "continue" ? true : false;
+
+        let messagesToSend = messages;
+        const prompt = message.content;
+        let promptToSend = `${prompt}`;
+
+        if (continueMessage) {
+          messagesToSend = [
+            ...messagesToSend,
+            {
+              role: "user",
+              content: "continue",
+            },
+          ];
+        }
+
+        if (promptToSend && promptToSend.length) {
+          messagesToSend.unshift({
+            role: "user",
+            content: `${promptToSend}\n\n`,
+          });
+        }
+        messagesToSend.push({
+          role: "assistant",
+          content: "",
+        });
+
+        let messagesToSendString = messagesToSend
+          .map((message: any) => {
+            if (message.role === "user") {
+              return `USER: ${message.content}`;
+            } else if (message.role === "assistant") {
+              return `ASSISTANT: ${message.content}`;
+            }
+          })
+          .join("\n");
+
+        const requestData = {
+          data: {
+            model: selectedModel.id,
+            prompt: messagesToSendString,
+            stream: true,
+            n_predict: 512,
+          },
+          endpoint: "completion",
         };
 
-        let body = JSON.stringify(chatBody);
+        let body = JSON.stringify(requestData);
 
         const controller = new AbortController();
 
