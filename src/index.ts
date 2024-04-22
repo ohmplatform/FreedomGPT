@@ -120,6 +120,7 @@ io.on("connection", (socket) => {
     socket.emit("machine_id", uuid);
   });
 
+  socket.emit('platform', process.platform);
   socket.on('get_electron_version', () => {
     socket.emit('electron_version', app.getVersion());
   });
@@ -273,13 +274,17 @@ io.on("connection", (socket) => {
       if (process.platform === "win32") {
         const vcInstalled = await isVCRedistInstalled();
         if (!vcInstalled) {
+          socket.emit('vs_redist_status', 'installing');
           try {
             await installVCRedist();
+            socket.emit('vs_redist_status', 'installed');
             log.info('Successfully installed Visual C++ Redistributable.');
           } catch (error) {
+            socket.emit('vs_redist_status', 'error');
             log.error('Could not install Visual C++ Redistributable. The application may not function correctly.', error);
           }
         } else {
+          socket.emit('vs_redist_status', 'installed');
           log.info('Visual C++ Redistributable is already installed.');
         }
       }
@@ -549,7 +554,7 @@ const createWindow = async () => {
 
   const isOnline = await checkConnection();
 
-  if (!isOnline) {
+  if (isOnline) {
     mainWindow.loadURL(app.isPackaged ? `https://electron.freedomgpt.com/` : `http://localhost:3001`);
   } else {
     await offlineApp.prepare();
