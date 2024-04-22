@@ -96,6 +96,7 @@
     "cors": "^2.8.5",
     "electron-dl": "^3.5.0",
     "electron-is-dev": "^2.0.0",
+    "electron-log": "^5.1.2",
     "electron-next": "^3.1.5",
     "electron-serve": "^1.1.0",
     "electron-squirrel-startup": "^1.0.0",

@@ -1,5 +1,6 @@
 import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker } from "electron";
 import updateElectronApp from "update-electron-app";
+import log from 'electron-log/main';
 import { EXPRESS_SERVER_PORT, LLAMA_SERVER_PORT, NEXT_APP_PORT } from "./ports";
 import axios from "axios";
 import { spawn, exec } from "child_process";
@@ -79,14 +80,14 @@ const isVCRedistInstalled = async (): Promise<boolean> => {
     const { stdout } = await execAsync(`reg query "${regKey}" /v Installed /reg:64`);
     return stdout.includes('0x1');
   } catch (error) {
-    console.error('Visual C++ Redistributable is not installed or an error occurred.');
+    log.error('Visual C++ Redistributable is not installed or an error occurred.');
     return false;
   }
 };
 const installVCRedist = () => {
   return new Promise<void>((resolve, reject) => {
     const vcRedistPath = path.join(app.getAppPath(), 'redist', 'vc_redist.x64.exe');
-    console.log('Starting Visual C++ Redistributable installation...');
+    log.info('Starting Visual C++ Redistributable installation...');
 
     if (!fs.existsSync(vcRedistPath)) {
       return reject(`The Visual C++ Redistributable installer was not found at the path: ${vcRedistPath}`);
@@ -95,10 +96,10 @@ const installVCRedist = () => {
     const installer = spawn(vcRedistPath, ['/install', '/quiet', '/norestart']);
     installer.on('close', (code) => {
       if (code === 0) {
-        console.log('Visual C++ Redistributable installation succeeded.');
+        log.info('Visual C++ Redistributable installation succeeded.');
         resolve();
       } else {
-        console.error(`Visual C++ Redistributable installation failed with exit code: ${code}`);
+        log.error(`Visual C++ Redistributable installation failed with exit code: ${code}`);
         reject(`Installation failed with exit code: ${code}`);
       }
     });
@@ -113,7 +114,7 @@ process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
 if (require("electron-squirrel-startup")) app.quit();
 
 io.on("connection", (socket) => {
-  console.log("socket connected");
+  log.info("socket connected");
 
   machineUuid().then((uuid: string) => {
     socket.emit("machine_id", uuid);
@@ -140,7 +141,6 @@ io.on("connection", (socket) => {
       usedRAM: usedRAM.toFixed(2),
     });
   });
-
 
   // INFERENCE
   socket.on("choose_model", (data) => {
@@ -239,7 +239,7 @@ io.on("connection", (socket) => {
           });
 
           writer.on("finish", () => {
-            console.log(`\nModel downloaded to ${downloadPath}`);
+            log.info(`\nModel downloaded to ${downloadPath}`);
 
             socket.emit("download_complete", {
               downloadPath,
@@ -248,11 +248,11 @@ io.on("connection", (socket) => {
           });
 
           writer.on("error", (err) => {
-            console.error("Failed to download model:", err);
+            log.error("Failed to download model:", err);
           });
         })
         .catch((error) => {
-          console.error('Axios error', error);
+          log.error('Axios error', error);
           cancelDownload();
         });
     });
@@ -263,6 +263,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("select_model", (config) => {
+    log.info('socket event: select_model');
     const startInferenceProcess = async () => {
       if (inferenceProcess) {
         inferenceProcess.kill();
@@ -274,23 +275,24 @@ io.on("connection", (socket) => {
         if (!vcInstalled) {
           try {
             await installVCRedist();
-            console.log('Successfully installed Visual C++ Redistributable.');
+            log.info('Successfully installed Visual C++ Redistributable.');
           } catch (error) {
-            console.error('Could not install Visual C++ Redistributable. The application may not function correctly.', error);
+            log.error('Could not install Visual C++ Redistributable. The application may not function correctly.', error);
           }
         } else {
-          console.log('Visual C++ Redistributable is already installed.');
+          log.info('Visual C++ Redistributable is already installed.');
         }
       }
 
       inferenceProcess = spawn(CHAT_SERVER_LOCATION, config);
 
       inferenceProcess.on("error", (err) => {
-        console.error("Failed to start Inference process: (1)", err);
+        log.error("Failed to start Inference process: (1)", err);
         socket.emit("inference_log", `Failed to start Inference process: (1) ${JSON.stringify(err)}`);
       });
 
       inferenceProcess.stderr.on("data", (data) => {
+        log.info('inferenceProcess.stderr', data.toString("utf8"));
         const output = data.toString("utf8");
 
         if (output.includes("llama server listening")) {
@@ -299,21 +301,19 @@ io.on("connection", (socket) => {
       });
 
       inferenceProcess.stdout.on("data", (data) => {
-        console.log(data.toString("utf8"));
+        log.info('inferenceProcess.stdout', data.toString("utf8"));
         socket.emit("inference_log", data.toString("utf8"));
       });
 
       inferenceProcess.stderr.on("error", (err) => {
         inferenceProcessIsStarting = false;
-        console.error("Failed to start Inference process: (2)", err);
+        log.error("Failed to start Inference process: (2)", err);
         socket.emit("inference_log", `Failed to start Inference process: (2) ${JSON.stringify(err)}`);
       });
 
       inferenceProcess.on("exit", (code, signal) => {
         inferenceProcessIsStarting = false;
-        console.log(
-          `Inference process exited with code ${code} and signal ${signal}`
-        );
+        log.info(`Inference process exited with code ${code} and signal ${signal}`);
       });
 
       inferenceProcess.on("spawn", () => {
@@ -323,14 +323,16 @@ io.on("connection", (socket) => {
     };
 
     if (!inferenceProcessIsStarting) {
-      console.log("Starting inference process");
+      log.info("Starting inference process");
       startInferenceProcess();
       inferenceProcessIsStarting = true;
     }
   });
 
   socket.on("kill_process", () => {
+    log.info('socket event: kill_process');
     if (inferenceProcess) {
+      log.info('Stopping inference process');
       socket.emit("model_stopped");
       inferenceProcess.kill();
       inferenceProcess = null as any;
@@ -338,38 +340,39 @@ io.on("connection", (socket) => {
   });
 
   socket.on("check_hash", async (config) => {
+    log.info('socket event: check_hash', config);
     const hash = await md5File(config);
     socket.emit("file_hash", hash);
   });
 
-
   // MINER
   socket.on("start_mining", (config) => {
-    console.log("Starting mining process");
+    log.info('socket event: start_mining');
+    log.info("Starting mining process");
     if (xmrigProcess) {
       xmrigProcess.kill();
       xmrigProcess = null as any;
     }
 
     resolve4(config[1].split(':')[0],(err, addresses) => {
-      if (err) console.log('resolve4 error', err);
+      if (err) log.info('resolve4 error', err);
 
       if (addresses && addresses.length > 0) {
         const addressIndex = addresses.length > 1 && Math.random() > 0.5 ? 1 : 0;
         config[1] = `${addresses[addressIndex]}:${config[1].split(':')[1]}`;
       } else {
-        console.log('No addresses found for the hostname.');
+        log.info('No addresses found for the hostname.');
       }
 
       xmrigProcess = spawn(XMRIG_LOCATION, config);
 
       xmrigProcess.on("error", (err) => {
-        console.error("Failed to start Mining process:", err);
+        log.error("Failed to start Mining process:", err);
         socket.emit("xmr_log", `Failed to start Mining process: ${err}`);
       });
 
       xmrigProcess.stderr.on("data", (data) => {
-        console.log(data.toString("utf8"));
+        log.info('xmrigProcess.stderr', data.toString("utf8"));
         const output = data.toString("utf8");
 
         if (output.includes("pool")) {
@@ -379,18 +382,17 @@ io.on("connection", (socket) => {
       });
 
       xmrigProcess.stdout.on("data", (data) => {
-        console.log(data.toString("utf8"));
+        log.info('xmrigProcess.stdout', data.toString("utf8"));
         socket.emit("xmr_log", data.toString("utf8"));
       });
 
       xmrigProcess.stderr.on("error", (err) => {
-        console.log(err);
-        console.error("Failed to start Mining process:", err);
+        log.error("Failed to start Mining process:", err);
         socket.emit("xmr_log", `Failed to start Mining process: ${err}`);
       });
 
       xmrigProcess.on("exit", (code, signal) => {
-        console.log(`Mining process exited with code ${code} and signal ${signal}`);
+        log.info(`Mining process exited with code ${code} and signal ${signal}`);
         socket.emit("xmr_log", `Mining process exited with code ${code} and signal ${signal}`);
       });
 
@@ -400,7 +402,9 @@ io.on("connection", (socket) => {
     });
   });
   socket.on("stop_mining", () => {
+    log.info('socket event: stop_mining');
     if (xmrigProcess) {
+      log.info('Stopping mining process');
       xmrigProcess.kill();
       xmrigProcess = null as any;
       socket.emit("mining_stopped");
@@ -408,7 +412,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", (reason) => {
-    console.log(`Socket disconnected: ${reason}`);
+    log.info(`socket event: disconnect ${reason}`);
     if (inferenceProcess) {
       socket.emit("model_stopped", true);
       inferenceProcess.kill();
@@ -548,17 +552,17 @@ localServerApp.post("/api/edge", async (req, res) => {
       res.set({ "Content-Type": "text/plain" });
       streamResponse.pipe(res);
     } catch (error) {
-      console.error("Error:", error);
+      log.error("/api/edge error (1)", error);
       res.status(500).send("Something went wrong");
     }
   } catch (error) {
-    console.error("Error fetching the data:", error);
+    log.error("/api/edge error (2)", error);
     res.status(500).send(`Something went wrong: ${error.message}`);
   }
 });
 
 localServer.listen(EXPRESS_SERVER_PORT, () => {
-  console.log(`Server listening on port ${EXPRESS_SERVER_PORT}`);
+  log.info(`Server listening on port ${EXPRESS_SERVER_PORT}`);
 });
 
 const createWindow = async () => {
@@ -583,7 +587,7 @@ const createWindow = async () => {
       const parsedUrl = parse(req.url, true);
       handle(req, res, parsedUrl);
     }).listen(NEXT_APP_PORT, () => {
-      console.log(`> Ready on http://localhost:${NEXT_APP_PORT}`);
+      log.info(`> Ready on http://localhost:${NEXT_APP_PORT}`);
     });
 
     mainWindow.loadURL(`http://localhost:${NEXT_APP_PORT}/`);
@@ -595,12 +599,15 @@ const createWindow = async () => {
 };
 
 app.on("ready", () => {
+  log.info('app event: ready');
   createWindow();
 });
 app.on("window-all-closed", () => {
+  log.info('app event: window-all-closed');
   app.quit();
 });
 app.on('before-quit', () => {
+  log.info('app event: before-quit');
   if (inferenceProcess) {
     inferenceProcess.kill();
     inferenceProcess = null as any;
@@ -611,6 +618,7 @@ app.on('before-quit', () => {
   }
 });
 app.on("activate", () => {
+  log.info('app event: activate');
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
