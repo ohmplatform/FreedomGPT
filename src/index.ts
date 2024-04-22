@@ -8,8 +8,7 @@ import dns, { resolve, resolve4 } from "dns";
 import isDev from "electron-is-dev";
 import express from "express";
 import fs from "fs";
-import { createServer } from "http";
-import http from "http";
+import http, { createServer } from "http";
 import md5File from "md5-file";
 import next from "next";
 import os from "os";
@@ -20,27 +19,23 @@ import machineUuid from 'machine-uuid';
 import util from 'util';
 import path from 'path';
 
-const execAsync = util.promisify(exec);
+export let inferenceProcess: import("child_process").ChildProcessWithoutNullStreams =
+  null as any;
+export let xmrigProcess: import("child_process").ChildProcessWithoutNullStreams =
+  null as any;
 
 let mainWindow;
 
-dns.setServers(['8.8.8.8', '1.1.1.1']);
-
-const expressapp = express();
-expressapp.use(express.json());
-const expressServer = http.createServer(expressapp);
-
-const io = new Server(expressServer, {
+const localServerApp = express();
+localServerApp.use(express.json());
+localServerApp.use(cors());
+const localServer = http.createServer(localServerApp);
+const io = new Server(localServer, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
   },
 });
-
-export let inferenceProcess: import("child_process").ChildProcessWithoutNullStreams =
-  null as any;
-export let xmrigProcess: import("child_process").ChildProcessWithoutNullStreams =
-  null as any;
 
 const deviceisWindows = process.platform === "win32";
 
@@ -63,16 +58,11 @@ const XMRIG_LOCATION = app.isPackaged
   ? process.cwd() + "/miner/windows/fgptminer.exe"
   : process.cwd() + "/miner/mac/fgptminer"
 
-process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
-if (require("electron-squirrel-startup")) app.quit();
-
-expressapp.use(cors());
-
-const nextApp = next({
+const offlineApp = next({
   dev: isDev,
   dir: app.getAppPath() + "/renderer",
 });
-const handle = nextApp.getRequestHandler();
+const handle = offlineApp.getRequestHandler();
 
 const checkConnection = (simulateOffline?): Promise<boolean> => {
   return new Promise<boolean>((innerResolve) => {
@@ -114,6 +104,13 @@ const installVCRedist = () => {
     });
   });
 };
+
+const execAsync = util.promisify(exec);
+
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
+process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
+if (require("electron-squirrel-startup")) app.quit();
 
 io.on("connection", (socket) => {
   console.log("socket connected");
@@ -513,7 +510,7 @@ const chat = async ({ promptToSend }) => {
   return stream;
 };
 
-expressapp.post("/api/edge", async (req, res) => {
+localServerApp.post("/api/edge", async (req, res) => {
   const { messages, continueMessage } = req.body;
 
   try {
@@ -560,7 +557,7 @@ expressapp.post("/api/edge", async (req, res) => {
   }
 });
 
-expressServer.listen(EXPRESS_SERVER_PORT, () => {
+localServer.listen(EXPRESS_SERVER_PORT, () => {
   console.log(`Server listening on port ${EXPRESS_SERVER_PORT}`);
 });
 
@@ -578,9 +575,9 @@ const createWindow = async () => {
   const isOnline = await checkConnection();
 
   if (isOnline) {
-    mainWindow.loadURL('https://electron.freedomgpt.com/');
+    mainWindow.loadURL(app.isPackaged ? `https://electron.freedomgpt.com/` : `http://localhost:3001`);
   } else {
-    await nextApp.prepare();
+    await offlineApp.prepare();
 
     createServer((req: any, res: any) => {
       const parsedUrl = parse(req.url, true);
@@ -600,11 +597,19 @@ const createWindow = async () => {
 app.on("ready", () => {
   createWindow();
 });
-
 app.on("window-all-closed", () => {
   app.quit();
 });
-
+app.on('before-quit', () => {
+  if (inferenceProcess) {
+    inferenceProcess.kill();
+    inferenceProcess = null as any;
+  }
+  if (xmrigProcess) {
+    xmrigProcess.kill();
+    xmrigProcess = null as any;
+  }
+});
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
