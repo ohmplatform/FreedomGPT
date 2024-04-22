@@ -5,15 +5,7 @@ import React from "react";
 import toast from "react-hot-toast";
 
 const LocalServerHandler: React.FC = () => {
-  const {
-    localServer,
-    setLocalServer,
-    selectedModel,
-    miningStatus,
-    setMiningStatus,
-    xmrLogs,
-    serverLogs,
-  } = useModel();
+  const { localServer, setLocalServer, selectedModel } = useModel();
 
   const startServer = () => {
     if (!selectedModel.model) {
@@ -28,25 +20,16 @@ const LocalServerHandler: React.FC = () => {
       model: selectedModel,
     });
 
-    socket &&
-      socket.emit("select_model", {
-        model: selectedModel,
-        FILEPATH: currentModelPath(selectedModel.id),
-      });
-  };
+    const inferenceProcessConfig = [
+      "-m",
+      currentModelPath(selectedModel.id),
+      "-c",
+      "2048",
+      "--port",
+      "8887",
+    ];
 
-  const startMining = () => {
-    // setLocalServer({
-    //   serverStatus: "loading",
-    //   serverMessage: "Local server is loading",
-    //   model: selectedModel,
-    // });
-
-    socket &&
-      socket.emit("start_mining", {
-        model: selectedModel,
-        FILEPATH: currentModelPath(selectedModel.id),
-      });
+    socket && socket.emit("select_model", inferenceProcessConfig);
   };
 
   const stopServer = () => {
@@ -54,17 +37,8 @@ const LocalServerHandler: React.FC = () => {
 
     setLocalServer({
       serverStatus: "stopped",
-      serverMessage: "Local server is running",
+      serverMessage: "Local server is stopped",
       model: selectedModel,
-    });
-  };
-
-  const stopMining = () => {
-    socket && socket.emit("stop_mining");
-
-    setMiningStatus({
-      miningStatus: "stopped",
-      miningMessage: "Mining is stopped",
     });
   };
 
@@ -139,54 +113,6 @@ const LocalServerHandler: React.FC = () => {
             Start Local Server
           </button>
         )}
-
-        {miningStatus.miningStatus === "running" ? (
-          <button
-            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-            onClick={() => {
-              stopMining();
-            }}
-          >
-            Stop Mining
-          </button>
-        ) : (
-          <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4"
-            onClick={() => {
-              startMining();
-            }}
-          >
-            Start Mining
-          </button>
-        )}
-
-        <div
-          className="mt-4"
-          style={{
-            maxHeight: "300px",
-            overflowY: "auto",
-            maxWidth: "50%",
-          }}
-        >
-          <p className="font-bold text-lg mb-2 text-cyan-600">Mining Logs</p>
-          <div className="bg-gray-800 text-white p-2 rounded">
-            <pre className="text-sm">{xmrLogs}</pre>
-          </div>
-        </div>
-
-        <div
-          className="mt-4"
-          style={{
-            maxHeight: "300px",
-            overflowY: "auto",
-            maxWidth: "50%",
-          }}
-        >
-          <p className="font-bold text-lg mb-2 text-cyan-600">Server Logs</p>
-          <div className="bg-gray-800 text-white p-2 rounded">
-            <pre className="text-sm">{serverLogs}</pre>
-          </div>
-        </div>
       </div>
     </>
   );
