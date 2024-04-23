@@ -101,7 +101,7 @@ jobs:
       - name: LLAMA - Make
         id: make_build
         run: |
-          cd llama.cpp && make && cd ..
+          cd llama.cpp && LLAMA_METAL=1 make && cd ..
 
       - name: LLAMA - Create directory
         id: make_directory
@@ -111,13 +111,14 @@ jobs:
       - name: LLAMA - Copy files
         id: copy_mac
         run: |
-          cp llama.cpp/server models/mac/llama
+          cp llama.cpp/server models/mac/llama && cp llama.cpp/ggml-metal.metal models/mac/llama
 
       - name: Make
         run: yarn make
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          DEBUG: electron-packager,electron-forge:*
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -127,7 +128,6 @@ jobs:
           files: |
             **/*.dmg
             **/*.zip
-            !**/*.txt.zip
 
   build-windows:
     name: Build - Windows
