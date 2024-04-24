@@ -555,7 +555,7 @@ const createWindow = async () => {
   const isOnline = await checkConnection();
 
   if (isOnline) {
-    mainWindow.loadURL(app.isPackaged ? `https://electron.freedomgpt.com/` : `http://localhost:3001`);
+    mainWindow.loadURL('https://electron.freedomgpt.com/');
   } else {
     await offlineApp.prepare();
 
