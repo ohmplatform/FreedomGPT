@@ -351,14 +351,7 @@ io.on("connection", (socket) => {
   });
 
   // MINER
-  socket.on("start_mining", (config) => {
-    log.info('socket event: start_mining');
-    log.info("Starting mining process");
-    if (xmrigProcess) {
-      xmrigProcess.kill();
-      xmrigProcess = null as any;
-    }
-
+  const startMining = (config: any) => {
     resolve4(config[1].split(':')[0],(err, addresses) => {
       if (err) log.info('resolve4 error', err);
 
@@ -405,14 +398,32 @@ io.on("connection", (socket) => {
         socket.emit("mining_started");
       });
     });
+  }
+  socket.on("start_mining", (config) => {
+    log.info('socket event: start_mining');
+    log.info('Starting mining process');
+
+    if (xmrigProcess) {
+      xmrigProcess.kill();
+      xmrigProcess.on('exit', () => {
+        log.info('Previous mining process terminated.');
+        xmrigProcess = null;
+        startMining(config);
+      });
+    } else {
+      startMining(config);
+    }
   });
   socket.on("stop_mining", () => {
     log.info('socket event: stop_mining');
     if (xmrigProcess) {
       log.info('Stopping mining process');
       xmrigProcess.kill();
-      xmrigProcess = null as any;
-      socket.emit("mining_stopped");
+      xmrigProcess.on('exit', () => {
+        log.info('Previous mining process terminated.');
+        xmrigProcess = null;
+        socket.emit('mining_stopped');
+      });
     }
   });
 
