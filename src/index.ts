@@ -1,4 +1,4 @@
-import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker } from "electron";
+import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker, Tray, Notification } from "electron";
 import updateElectronApp from "update-electron-app";
 import log from 'electron-log/main';
 import { EXPRESS_SERVER_PORT, LLAMA_SERVER_PORT, NEXT_APP_PORT } from "./ports";
@@ -19,6 +19,7 @@ import machineUuid from 'machine-uuid';
 import util from 'util';
 import path from 'path';
 import { Readable } from "stream";
+import sharp from 'sharp';
 
 export let inferenceProcess: import("child_process").ChildProcessWithoutNullStreams =
   null as any;
@@ -26,6 +27,7 @@ export let xmrigProcess: import("child_process").ChildProcessWithoutNullStreams 
   null as any;
 
 let mainWindow;
+let tray = null;
 
 const localServerApp = express();
 localServerApp.use(express.json());
@@ -118,6 +120,15 @@ io.on("connection", (socket) => {
 
   machineUuid().then((uuid: string) => {
     socket.emit("machine_id", uuid);
+  });
+
+  socket.on('notification', (content) => {
+    if (mainWindow.isFocused()) return;
+    new Notification({ title: content.title, body: content.body, silent: true }).show();
+  });
+
+  socket.on('voice_chat_ready', () => {
+    createTray(socket);
   });
 
   socket.emit('platform', process.platform);
@@ -582,6 +593,88 @@ const createWindow = async () => {
 
   mainWindow.once("ready-to-show", () => {
     updateElectronApp();
+  });
+};
+
+const createTray = async (socket: any) => {
+  if (tray) return;
+
+  const iconSize = 34;
+  let animationInterval;
+
+  const getPngPath = (svgPath, size) => path.join(app.getPath('temp'), `${path.basename(svgPath, '.svg')}_${size}x${size}@2x.png`);
+
+  const convertSvgToPng = async (svgPath, sizes) => {
+    for (const size of sizes) {
+      const pngPath = getPngPath(svgPath, size);
+      await sharp(svgPath)
+        .resize(size, size)
+        .png()
+        .toFile(pngPath);
+    }
+  };
+
+  const iconSvgPath = path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire.svg');
+  const iconSvgPath_Frame1 = path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-frame-1.svg');
+  const iconSvgPath_Frame2 = path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-frame-2.svg');
+  const iconSvgPath_Frame3 = path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-frame-3.svg');
+  const iconSvgPath_Frame4 = path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-frame-4.svg');
+  const iconSvgPath_Frame5 = path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-frame-5.svg');
+
+  await convertSvgToPng(iconSvgPath, [iconSize]);
+  await convertSvgToPng(iconSvgPath_Frame1, [iconSize]);
+  await convertSvgToPng(iconSvgPath_Frame2, [iconSize]);
+  await convertSvgToPng(iconSvgPath_Frame3, [iconSize]);
+  await convertSvgToPng(iconSvgPath_Frame4, [iconSize]);
+  await convertSvgToPng(iconSvgPath_Frame5, [iconSize]);
+
+  const iconDefault = getPngPath(iconSvgPath, iconSize);
+  const iconRecordingFrames = [
+    getPngPath(iconSvgPath_Frame1, iconSize),
+    getPngPath(iconSvgPath_Frame2, iconSize),
+    getPngPath(iconSvgPath_Frame3, iconSize),
+    getPngPath(iconSvgPath_Frame4, iconSize),
+    getPngPath(iconSvgPath_Frame5, iconSize),
+  ];
+
+  tray = new Tray(iconDefault);
+  tray.setToolTip('Start voice chat');
+  tray.on('click', () => {
+    socket.emit('voice_chat_toggle');
+  });
+
+  socket.on('voice_chat_state', (state) => {
+    if (state === 'active') {
+      let frameIndex = 0;
+      const cycleFrames = () => {
+        tray.setImage(iconRecordingFrames[frameIndex]);
+        frameIndex = (frameIndex + 1) % iconRecordingFrames.length;
+      };
+      if (animationInterval) {
+        clearInterval(animationInterval);
+      }
+      animationInterval = setInterval(cycleFrames, 350);
+      tray.setToolTip('Stop voice chat');
+    } else if (state === 'loading') {
+      tray.setImage(iconRecordingFrames[0]);
+      tray.setToolTip('Voice chat is loading');
+    } else if (state === 'error') {
+      if (animationInterval) {
+        clearInterval(animationInterval);
+        animationInterval = null;
+      }
+      tray.setImage(iconDefault);
+      mainWindow.show();
+      mainWindow.restore();
+      mainWindow.focus();
+    } else {
+      if (animationInterval) {
+        clearInterval(animationInterval);
+        animationInterval = null;
+      }
+      tray.setImage(iconDefault);
+      tray.setToolTip('Start voice chat');
+    }
   });
 };
 

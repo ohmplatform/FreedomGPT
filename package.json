@@ -7,7 +7,7 @@
   "scripts": {
     "start": "yarn build-electron && electron-forge start",
     "push-update": "yarn version --patch && git push --follow-tags",
-    "update-version": "yarn version --new-version",
+    "update-version": "zsh -c 'read -r \"version?Enter new version: \" && yarn version --new-version $version'",
     "push-build": "git push --follow-tags",
     "package": "electron-forge package",
     "make": "yarn build && electron-forge make",
@@ -122,6 +122,7 @@
     "rehype-mathjax": "^4.0.2",
     "remark-gfm": "^3.0.1",
     "remark-math": "^5.1.1",
+    "sharp": "^0.33.4",
     "socket.io": "^4.6.2",
     "socket.io-client": "^4.6.1",
     "update-electron-app": "^2.0.1",
