@@ -596,7 +596,7 @@ const createWindow = async () => {
 };
 
 const createTray = async (socket) => {
-  if (tray) return;
+  if (tray) tray.destroy();
 
   let animationInterval;
 
