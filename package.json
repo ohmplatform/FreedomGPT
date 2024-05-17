@@ -122,7 +122,6 @@
     "rehype-mathjax": "^4.0.2",
     "remark-gfm": "^3.0.1",
     "remark-math": "^5.1.1",
-    "sharp": "^0.33.4",
     "socket.io": "^4.6.2",
     "socket.io-client": "^4.6.1",
     "update-electron-app": "^2.0.1",
