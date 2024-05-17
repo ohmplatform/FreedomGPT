@@ -11,6 +11,9 @@ on:
     tags:
       - v*
 
+permissions:
+  contents: write
+
 jobs:
   build-macArm:
     name: Build - Mac (ARM)
