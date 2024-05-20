@@ -58,6 +58,11 @@ jobs:
         run: |
           cp llama.cpp/server models/mac/llama && cp llama.cpp/ggml-metal.metal models/mac/llama
 
+      - name: Remove Windows files
+        id: remove_windows_files
+        run: |
+          rm -r redist
+
       - name: Make
         run: yarn make
         env:
@@ -115,6 +120,11 @@ jobs:
   #       id: copy_mac
   #       run: |
   #         cp llama.cpp/server models/mac/llama && cp llama.cpp/ggml-metal.metal models/mac/llama
+
+      # - name: Remove Windows files
+      #   id: remove_windows_files
+      #   run: |
+      #     rm -r redist
 
   #     - name: Make
   #       run: yarn make
