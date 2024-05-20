@@ -1,4 +1,4 @@
-import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker, Tray, Notification, nativeTheme } from "electron";
+import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker, Tray, Notification, nativeTheme, systemPreferences,  shell } from "electron";
 import updateElectronApp from "update-electron-app";
 import log from 'electron-log/main';
 import { EXPRESS_SERVER_PORT, LLAMA_SERVER_PORT, NEXT_APP_PORT } from "./ports";
@@ -113,6 +113,20 @@ dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
 if (require("electron-squirrel-startup")) app.quit();
+
+const askForMicrophonePermission = async () => {
+  try {
+    if (process.platform !== 'darwin') {
+      console.warn('Microphone permission request is only supported on macOS.');
+      return false;
+    }
+    const status = await systemPreferences.askForMediaAccess("microphone");
+    return status;
+  } catch (error) {
+    log.error('Failed to ask for microphone permission', error);
+    return false;
+  }
+};
 
 io.on("connection", (socket) => {
   log.info("socket connected");
@@ -617,9 +631,29 @@ const createTray = async (socket) => {
 
   tray = new Tray(nativeTheme.shouldUseDarkColors ? iconDefaultDark : iconDefaultLight);
   tray.setToolTip('Start voice chat');
-  tray.on('click', () => {
-    socket.emit('voice_chat_toggle');
-  });
+  tray.on('click', async() => {
+    const status = await askForMicrophonePermission();
+    if (status) {
+      socket.emit('voice_chat_toggle');
+    } else {
+          const response = dialog.showMessageBoxSync({
+            type: 'error',
+            buttons: ['Cancel', 'Open Settings'],
+            defaultId: 1,
+            title: 'Microphone Access Denied',
+            message: 'You must allow microphone access to use this feature.',
+            detail: 'Click "Open Settings" to enable microphone access.'
+          });
+          
+          if (response === 1) {
+            if (os.platform() === 'darwin') {
+              shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
+            } else if (os.platform() === 'win32') {
+              shell.openExternal('ms-settings:privacy-microphone');
+            }
+          }
+        }
+  });  
 
   nativeTheme.on('updated', updateIcon);
 
