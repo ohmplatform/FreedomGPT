@@ -1,4 +1,3 @@
-import MakerDMG from "@electron-forge/maker-dmg";
 import MakerSquirrel from "@electron-forge/maker-squirrel";
 import MakerZIP from "@electron-forge/maker-zip";
 import type { ForgeConfig } from "@electron-forge/shared-types";
@@ -33,7 +32,6 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ["darwin"]),
-    new MakerDMG({}, ["darwin"]),
     new MakerSquirrel(
       {
         name: "FreedomGPT",
