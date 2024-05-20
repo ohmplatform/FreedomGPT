@@ -107,26 +107,35 @@ const installVCRedist = () => {
   });
 };
 
+const askForMediaAccess = async () => {
+  try {
+    if (process.platform !== 'darwin') {
+      return true;
+    }
+
+    const status = systemPreferences.getMediaAccessStatus('microphone');
+    log.info('Current microphone access status:', status);
+
+    if (status === 'not-determined' || status === 'unknown') {
+      const success = await systemPreferences.askForMediaAccess('microphone');
+      log.info('Result of microphone access:', success ? 'granted' : 'denied');
+      return success;
+    }
+
+    if (status === 'granted') return true;
+  } catch (error) {
+    log.error('Could not get microphone permission:', error.message);
+  }
+
+  return false;
+}
+
 const execAsync = util.promisify(exec);
 
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
 if (require("electron-squirrel-startup")) app.quit();
-
-const askForMicrophonePermission = async () => {
-  try {
-    if (process.platform !== 'darwin') {
-      console.warn('Microphone permission request is only supported on macOS.');
-      return false;
-    }
-    const status = await systemPreferences.askForMediaAccess("microphone");
-    return status;
-  } catch (error) {
-    log.error('Failed to ask for microphone permission', error);
-    return false;
-  }
-};
 
 io.on("connection", (socket) => {
   log.info("socket connected");
@@ -138,6 +147,33 @@ io.on("connection", (socket) => {
   socket.on('notification', (content) => {
     if (mainWindow.isFocused()) return;
     new Notification({ title: content.title, body: content.body, silent: true }).show();
+  });
+
+  socket.on('get_mic_permission', async () => {
+    const hasPermission = await askForMediaAccess();
+
+    if (hasPermission) {
+      socket.emit('has_mic_permission', true);
+    } else {
+      socket.emit('has_mic_permission', false);
+
+      const response = dialog.showMessageBoxSync({
+        type: 'error',
+        buttons: ['Cancel', 'Open Settings'],
+        defaultId: 1,
+        title: 'Microphone Access Denied',
+        message: 'Microphone access must be enabled to use this feature.',
+        detail: 'Click "Open Settings" to enable microphone access.'
+      });
+
+      if (response === 1) {
+        if (os.platform() === 'darwin') {
+          shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
+        } else if (os.platform() === 'win32') {
+          shell.openExternal('ms-settings:privacy-microphone');
+        }
+      }
+    }
   });
 
   socket.on('voice_chat_ready', () => {
@@ -591,6 +627,7 @@ const createWindow = async () => {
 
   if (isOnline) {
     mainWindow.loadURL('https://electron.freedomgpt.com/');
+    // mainWindow.loadURL('http://localhost:3001');
   } else {
     await offlineApp.prepare();
 
@@ -632,28 +669,8 @@ const createTray = async (socket) => {
   tray = new Tray(nativeTheme.shouldUseDarkColors ? iconDefaultDark : iconDefaultLight);
   tray.setToolTip('Start voice chat');
   tray.on('click', async() => {
-    const status = await askForMicrophonePermission();
-    if (status) {
-      socket.emit('voice_chat_toggle');
-    } else {
-          const response = dialog.showMessageBoxSync({
-            type: 'error',
-            buttons: ['Cancel', 'Open Settings'],
-            defaultId: 1,
-            title: 'Microphone Access Denied',
-            message: 'You must allow microphone access to use this feature.',
-            detail: 'Click "Open Settings" to enable microphone access.'
-          });
-          
-          if (response === 1) {
-            if (os.platform() === 'darwin') {
-              shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
-            } else if (os.platform() === 'win32') {
-              shell.openExternal('ms-settings:privacy-microphone');
-            }
-          }
-        }
-  });  
+    socket.emit('voice_chat_toggle');
+  });
 
   nativeTheme.on('updated', updateIcon);
 

@@ -15,6 +15,6 @@
     <key>com.apple.security.device.audio-input</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <true/>
+    <string>Your microphone will be used for voice chat.</string>
   </dict>
 </plist>
