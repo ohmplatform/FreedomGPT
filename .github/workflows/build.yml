@@ -15,8 +15,8 @@ permissions:
   contents: write
 
 jobs:
-  build-macArm:
-    name: Build - Mac (ARM)
+  build-mac-arm64:
+    name: Build - Mac (ARM64)
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: macos-latest-xlarge
     strategy:
@@ -37,7 +37,6 @@ jobs:
         run: yarn install
 
       - name: Add macOS certs
-        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
         run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
         env:
           CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
@@ -64,7 +63,7 @@ jobs:
           rm -r redist
 
       - name: Make
-        run: yarn make
+        run: yarn make --platform=darwin --arch=arm64
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
@@ -75,72 +74,69 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
-            **/*.dmg
             **/*.zip
 
-  # build-macIntel:
-  #   name: Build - Mac (Intel)
-  #   if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-  #   runs-on: macos-latest
-  #   strategy:
-  #     matrix:
-  #       os: [macos-latest]
-  #   steps:
-  #     - name: Checkout code with submodules
-  #       uses: actions/checkout@v3
-  #       with:
-  #         submodules: recursive
+  build-mac-x64:
+    name: Build - Mac (x64)
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [macos-latest]
+    steps:
+      - name: Checkout code with submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
-  #     - name: Use node 20
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version: "20.x"
+      - name: Use node 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
 
-  #     - name: Yarn install
-  #       run: yarn install
+      - name: Yarn install
+        run: yarn install
 
-  #     - name: Add macOS certs
-  #       if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
-  #       run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
-  #       env:
-  #         CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
-  #         CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      - name: Add macOS certs
+        run: chmod +x add-osx-cert.sh && ./add-osx-cert.sh
+        env:
+          CERTIFICATE_OSX_APPLICATION: ${{ secrets.CERTIFICATE_OSX_APPLICATION }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
 
-  #     - name: LLAMA - Make
-  #       id: make_build
-  #       run: |
-  #         cd llama.cpp && LLAMA_METAL=1 make && cd ..
+      - name: LLAMA - Make
+        id: make_build
+        run: |
+          cd llama.cpp && LLAMA_METAL=1 make && cd ..
 
-  #     - name: LLAMA - Create directory
-  #       id: make_directory
-  #       run: |
-  #         mkdir -p models/mac/llama
+      - name: LLAMA - Create directory
+        id: make_directory
+        run: |
+          mkdir -p models/mac/llama
 
-  #     - name: LLAMA - Copy files
-  #       id: copy_mac
-  #       run: |
-  #         cp llama.cpp/server models/mac/llama && cp llama.cpp/ggml-metal.metal models/mac/llama
+      - name: LLAMA - Copy files
+        id: copy_mac
+        run: |
+          cp llama.cpp/server models/mac/llama && cp llama.cpp/ggml-metal.metal models/mac/llama
 
-      # - name: Remove Windows files
-      #   id: remove_windows_files
-      #   run: |
-      #     rm -r redist
+      - name: Remove Windows files
+        id: remove_windows_files
+        run: |
+          rm -r redist
 
-  #     - name: Make
-  #       run: yarn make
-  #       env:
-  #         APPLE_ID: ${{ secrets.APPLE_ID }}
-  #         APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-  #         DEBUG: electron-packager,electron-forge:*
+      - name: Make
+        run: yarn make --platform=darwin --arch=x64
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          DEBUG: electron-packager,electron-forge:*
 
-  #     - name: Release
-  #       uses: softprops/action-gh-release@v1
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       with:
-  #         files: |
-  #           **/*.dmg
-  #           **/*.zip
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            **/*.zip
 
   build-windows:
     name: Build - Windows
@@ -164,7 +160,6 @@ jobs:
         run: yarn install --network-timeout 100000
 
       - name: Add Windows certificate
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
         id: write_file
         uses: timheuer/base64-to-file@v1
         with:
