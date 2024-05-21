@@ -1,4 +1,4 @@
-import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker, Tray, Notification, nativeTheme, systemPreferences,  shell } from "electron";
+import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker, Tray, Notification, systemPreferences,  shell } from "electron";
 import updateElectronApp from "update-electron-app";
 import log from 'electron-log/main';
 import { EXPRESS_SERVER_PORT, LLAMA_SERVER_PORT, NEXT_APP_PORT } from "./ports";
@@ -650,9 +650,7 @@ const createTray = async (socket) => {
   if (tray) tray.destroy();
 
   let animationInterval;
-
-  const iconDefaultLight = path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-light@3x.png');
-  const iconDefaultDark = path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-dark@3x.png');
+  const iconDefault = path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fireTemplate@3x.png');
   const iconRecordingFrames = [
     path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-frame-1@3x.png'),
     path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-frame-2@3x.png'),
@@ -661,18 +659,11 @@ const createTray = async (socket) => {
     path.join(app.getAppPath(), 'src', 'appicons', 'icons', 'tray', 'fire-frame-5@3x.png'),
   ];
 
-  const updateIcon = () => {
-    const iconDefault = nativeTheme.shouldUseDarkColors ? iconDefaultDark : iconDefaultLight;
-    tray.setImage(iconDefault);
-  };
-
-  tray = new Tray(nativeTheme.shouldUseDarkColors ? iconDefaultDark : iconDefaultLight);
+  tray = new Tray(iconDefault);
   tray.setToolTip('Start voice chat');
   tray.on('click', async() => {
     socket.emit('voice_chat_toggle');
   });
-
-  nativeTheme.on('updated', updateIcon);
 
   socket.on('voice_chat_state', (state) => {
     if (state === 'active') {
@@ -694,7 +685,7 @@ const createTray = async (socket) => {
         clearInterval(animationInterval);
         animationInterval = null;
       }
-      tray.setImage(nativeTheme.shouldUseDarkColors ? iconDefaultDark : iconDefaultLight);
+      tray.setImage(iconDefault);
       mainWindow.show();
       mainWindow.restore();
       mainWindow.focus();
@@ -703,7 +694,7 @@ const createTray = async (socket) => {
         clearInterval(animationInterval);
         animationInterval = null;
       }
-      tray.setImage(nativeTheme.shouldUseDarkColors ? iconDefaultDark : iconDefaultLight);
+      tray.setImage(iconDefault);
       tray.setToolTip('Start voice chat');
     }
   });
