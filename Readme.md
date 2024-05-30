@@ -60,6 +60,53 @@ npx yarn start
 If needed, ports can be changed in:
 `src/ports.ts`
 
+## Installation and Setup Guide for Linux
+
+### Required Packages
+
+To get started, you need to install several required packages. Run the following commands:
+
+```bash
+sudo apt install nodejs
+sudo apt install yarn
+sudo apt install git
+sudo apt install make
+sudo apt install g++
+sudo apt install npm
+```
+
+### Build the Project
+
+Navigate to the project directory and build it:
+
+```bash
+cd freedom-gpt/llama.cpp
+make
+cd ..
+npm install
+npm run
+npm start
+```
+
+### Usage
+
+### Working with Liberty Edge Models
+
+You can manually download the Liberty Edge models and set the paths to these files from the AI Models screen.
+
+### Mining Earnings
+
+To enable mining earnings, follow these steps:
+
+1. Download the XMRig Linux Static, CPU-only version from [xmrig.com/download](https://xmrig.com/download)
+2. Extract the archive and copy the `xmrig` binary to the `freedom-gpt/miner/mac/fgptminer` directory:
+
+```bash
+# Assuming you have extracted xmrig in the current directory
+cp xmrig freedom-gpt/miner/mac/fgptminer
+```
+
+
 <!-- ## Dockerizing the App
 
 To run the docker image, run the following command in your terminal:
