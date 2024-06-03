@@ -1,4 +1,4 @@
-import { EXPRESS_SERVER_PORT } from "../../../src/ports";
+import { LOCAL_SERVER_PORT } from "../../../src/ports";
 import { ChatInput } from "./ChatInput";
 import { ChatLoader } from "./ChatLoader";
 import { ErrorMessageDiv } from "./ErrorMessageDiv";
@@ -198,7 +198,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
 
         const controller = new AbortController();
 
-        const url = `http://localhost:${EXPRESS_SERVER_PORT}/api/edge`;
+        const url = `http://localhost:${LOCAL_SERVER_PORT}/api/edge`;
         const response = await fetch(
           url,
 
