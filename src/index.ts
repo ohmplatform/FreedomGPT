@@ -1,4 +1,4 @@
-import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker, Tray, Notification, systemPreferences, shell } from 'electron';
+import { BrowserWindow, app, dialog, powerMonitor, powerSaveBlocker, Tray, Notification, systemPreferences, shell, session } from 'electron';
 import updateElectronApp from 'update-electron-app';
 import log from 'electron-log/main';
 import { LOCAL_SERVER_PORT, LLAMA_SERVER_PORT, OFFLINE_APP_PORT } from './ports';
@@ -108,6 +108,18 @@ const createWindow = async () => {
 
   mainWindow.once('ready-to-show', () => {
     updateElectronApp();
+  });
+};
+
+const setCORS = () => {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const responseHeaders = { ...details.responseHeaders };
+
+    if (details.url.startsWith('http://127.0.0.1')) {
+      responseHeaders['Access-Control-Allow-Origin'] = ['*'];
+    }
+
+    callback({ responseHeaders });
   });
 };
 
@@ -266,10 +278,13 @@ const chat = async ({ data, endpoint = 'completion' }) => {
 app.on('ready', () => {
   log.info('app event: ready');
   createWindow();
+  setCORS();
 });
-app.on('window-all-closed', () => {
-  log.info('app event: window-all-closed');
-  app.quit();
+app.on('activate', () => {
+  log.info('app event: activate');
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
 app.on('before-quit', () => {
   log.info('app event: before-quit');
@@ -280,12 +295,6 @@ app.on('before-quit', () => {
   if (xmrigProcess) {
     xmrigProcess.kill();
     xmrigProcess = null as any;
-  }
-});
-app.on('activate', () => {
-  log.info('app event: activate');
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
   }
 });
 
@@ -529,46 +538,49 @@ io.on('connection', (socket) => {
 
       inferenceProcess = spawn(CHAT_SERVER_LOCATION, config);
 
-      inferenceProcess.on('error', (err) => {
-        log.error('Failed to start Inference process: (1)', err);
-        socket.emit('inference_log', `Failed to start Inference process: (1) ${JSON.stringify(err)}`);
-      });
-
-      inferenceProcess.stderr.on('data', (data) => {
-        log.info('inferenceProcess.stderr', data.toString('utf8'));
-        const output = data.toString('utf8');
-
-        if (output.includes('llama server listening')) {
-          socket.emit('model_loaded');
-        }
-      });
-
-      inferenceProcess.stdout.on('data', (data) => {
-        log.info('inferenceProcess.stdout', data.toString('utf8'));
-        socket.emit('inference_log', data.toString('utf8'));
-      });
-
-      inferenceProcess.stderr.on('error', (err) => {
+      inferenceProcess.on('spawn', () => {
+        socket.emit('model_spawned');
+        socket.emit('inference_log', 'model_spawned');
         inferenceProcessIsStarting = false;
-        log.error('Failed to start Inference process: (2)', err);
-        socket.emit('inference_log', `Failed to start Inference process: (2) ${JSON.stringify(err)}`);
       });
 
       inferenceProcess.on('exit', (code, signal) => {
+        const msg = `Inference process exited with code ${code} and signal ${signal}`
+        log.info(msg);
+        socket.emit('inference_log', msg);
         inferenceProcessIsStarting = false;
-        log.info(`Inference process exited with code ${code} and signal ${signal}`);
       });
 
-      inferenceProcess.on('spawn', () => {
-        socket.emit('model_loading');
+      inferenceProcess.on('error', (err) => {
+        const msg = `Failed to start Inference process (1): ${JSON.stringify(err)}`;
+        log.error(msg);
+        socket.emit('model_error', msg);
+        socket.emit('inference_log', msg);
         inferenceProcessIsStarting = false;
+      });
+      inferenceProcess.stderr.on('error', (err) => {
+        const msg = `Failed to start Inference process (2): ${JSON.stringify(err)}`;
+        log.error(msg);
+        socket.emit('model_error', msg);
+        socket.emit('inference_log', msg);
+        inferenceProcessIsStarting = false;
+      });
+
+      inferenceProcess.stderr.on('data', (data) => {
+        log.info('inferenceProcess.stderr (data)', data.toString('utf8'));
+        socket.emit('inference_log', `inferenceProcess.stderr (data): ${data.toString('utf8')}`);
+      });
+
+      inferenceProcess.stdout.on('data', (data) => {
+        log.info('inferenceProcess.stdout (data)', data.toString('utf8'));
+        socket.emit('inference_log', `inferenceProcess.stdout (data) ${data.toString('utf8')}`);
       });
     };
 
     if (!inferenceProcessIsStarting) {
       log.info('Starting inference process');
-      startInferenceProcess();
       inferenceProcessIsStarting = true;
+      startInferenceProcess();
     }
   });
 
