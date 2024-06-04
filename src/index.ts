@@ -179,12 +179,13 @@ const createTray = async (socket) => {
 
 const isVCRedistInstalled = async (): Promise<boolean> => {
   const execAsync = util.promisify(exec);
-  const regKey = 'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\X64';
+  const powershellCommand = `Get-WmiObject Win32_Product | Where-Object { $_.Name -like '*Visual C++*' }`;
+
   try {
-    const { stdout } = await execAsync(`reg query '${regKey}' /v Installed /reg:64`);
-    return stdout.includes('0x1');
+    const { stdout } = await execAsync(`powershell -command "${powershellCommand.replace(/"/g, '\\"')}"`);
+    return stdout.includes('Visual C++');
   } catch (error) {
-    log.error('Visual C++ Redistributable is not installed or an error occurred.');
+    log.error('Visual C++ Redistributable check failed. Error: ', error.message);
     return false;
   }
 };
