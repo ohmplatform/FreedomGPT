@@ -120,6 +120,49 @@ const ModelProvider = ({ children }: { children: React.ReactNode }) => {
       });
   }, []);
 
+    useEffect(() => {
+    if (localServer.serverStatus === 'stopped') return;
+
+    let controller = new AbortController();
+
+    const getInferenceProcessHealth = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8887/health', {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          console.log('getInferenceProcessHealth error', response.status);
+        }
+
+        const healthData = await response.json();
+
+        if (healthData.status === 'ok' && localServer.serverStatus === 'loading') {
+          setModelLoaded(true);
+          setLocalServer({
+            serverStatus: "running",
+            serverMessage: "Local server is running",
+            model: selectedModel.id,
+          });
+        }
+      } catch (e: any) {
+        console.log(e);
+      }
+    }
+
+    getInferenceProcessHealth();
+    const inferenceProcessHealthInterval = setInterval(() => {
+      controller.abort();
+      controller = new AbortController();
+      getInferenceProcessHealth();
+    }, 5000);
+
+    return () => {
+      clearInterval(inferenceProcessHealthInterval);
+      controller.abort();
+    }
+  }, [localServer]);
+
   useEffect(() => {
     socket &&
       socket.on("model_loaded", () => {

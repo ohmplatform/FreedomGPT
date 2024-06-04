@@ -184,21 +184,8 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           })
           .join("\n");
 
-        const requestData = {
-          data: {
-            model: selectedModel.id,
-            prompt: messagesToSendString,
-            stream: true,
-            n_predict: 512,
-          },
-          endpoint: "completion",
-        };
-
-        let body = JSON.stringify(requestData);
-
         const controller = new AbortController();
-
-        const url = `http://localhost:${LOCAL_SERVER_PORT}/api/edge`;
+        const url = `http://127.0.0.1:8887/completion`;
         const response = await fetch(
           url,
 
@@ -208,7 +195,11 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
               "Content-Type": "application/json",
             },
             signal: controller.signal,
-            body,
+            body: JSON.stringify({
+              prompt: messagesToSendString,
+              stream: true,
+              n_predict: 512,
+            }),
           }
         );
 
@@ -245,7 +236,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         const decoder = new TextDecoder();
         let done = false;
         let isFirst = true;
-        let text = "";
+        let text = '';
         while (!done) {
           if (stopConversationRef.current === true) {
             controller.abort();
@@ -255,12 +246,21 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           const { value, done: doneReading } = await reader.read();
           done = doneReading;
           const chunkValue = decoder.decode(value);
-          text += chunkValue;
+
+          try {
+            if (chunkValue.startsWith('data: ')) {
+              const parsedChunkValue = JSON.parse(chunkValue.substring(6));
+              text += parsedChunkValue.content;
+            }
+          } catch (error) {
+            console.error("Parsing error:", error);
+          }
+
           if (isFirst) {
             isFirst = false;
             let updatedMessages: Message[] = [];
 
-            if (message.content === "continue") {
+            if (message.content === 'continue') {
               let lastMessage =
                 updatedConversation.messages[
                   updatedConversation.messages.length - 1
@@ -268,13 +268,13 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
 
               let updatedLastMessage = {
                 ...lastMessage,
-                content: lastMessage.content + "\n" + chunkValue,
+                content: lastMessage.content + '\n' + text,
               };
 
               updatedMessages = [
                 ...updatedConversation.messages.slice(
                   0,
-                  updatedConversation.messages.length - 1
+                  updatedConversation.messages.length - 1,
                 ),
                 updatedLastMessage,
               ];
@@ -282,8 +282,8 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
               updatedMessages = [
                 ...updatedConversation.messages,
                 {
-                  role: "assistant",
-                  content: chunkValue,
+                  role: 'assistant',
+                  content: text,
                   summarized: false,
                 },
               ];
@@ -295,14 +295,14 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             };
 
             homeDispatch({
-              field: "selectedConversation",
+              field: 'selectedConversation',
               value: updatedConversation,
             });
           } else {
             let updatedMessages: Message[] = updatedConversation.messages.map(
               (messages, index) => {
                 if (index === updatedConversation.messages.length - 1) {
-                  if (message.content === "continue") {
+                  if (message.content === 'continue') {
                     let lastMessage =
                       updatedConversation.messages[
                         updatedConversation.messages.length - 1
@@ -310,7 +310,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
 
                     let updatedLastMessage = {
                       ...lastMessage,
-                      content: lastMessage.content + chunkValue,
+                      content: lastMessage.content + text,
                     };
 
                     return updatedLastMessage;
@@ -322,7 +322,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                   }
                 }
                 return messages;
-              }
+              },
             );
 
             updatedConversation = {
@@ -331,7 +331,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             };
 
             homeDispatch({
-              field: "selectedConversation",
+              field: 'selectedConversation',
               value: updatedConversation,
             });
           }

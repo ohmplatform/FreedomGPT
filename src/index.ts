@@ -18,7 +18,6 @@ import { parse } from 'url';
 import machineUuid from 'machine-uuid';
 import util from 'util';
 import path from 'path';
-import { Readable } from 'stream';
 
 export let inferenceProcess: import('child_process').ChildProcessWithoutNullStreams =
   null as any;
@@ -234,48 +233,6 @@ const askForMediaAccess = async () => {
   return false;
 };
 
-const chat = async ({ data, endpoint = 'completion' }) => {
-  const encoder = new TextEncoder();
-  const stream = new Readable({
-    read() {},
-  });
-
-  const fetchStreamData = async () => {
-    const result = await fetch(
-      `http://127.0.0.1:${LLAMA_SERVER_PORT}/${endpoint}`,
-      {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
-
-    for await (const chunk of result.body as any) {
-      const t = Buffer.from(chunk).toString('utf8');
-
-      try {
-        if (t.startsWith('data: ')) {
-          const message = JSON.parse(t.substring(6));
-          (stream as any).push(encoder.encode(message.content));
-
-          if (message.stop) {
-            (stream as any).push(null);
-          }
-        }
-      } catch (error) {
-        (stream as any).push(null);
-      }
-    }
-  };
-
-  fetchStreamData();
-
-  return stream;
-};
-
 app.on('ready', () => {
   log.info('app event: ready');
   createWindow();
@@ -303,31 +260,10 @@ localServer.listen(LOCAL_SERVER_PORT, () => {
   log.info(`Server listening on port ${LOCAL_SERVER_PORT}`);
 });
 
-localServerApp.post('/api/edge', async (req, res) => {
-  const { endpoint, data } = req.body;
-
-  try {
-    try {
-      const streamResponse = await chat({
-        data,
-        endpoint
-      });
-
-      res.set({ 'Content-Type': 'text/plain' });
-      streamResponse.pipe(res);
-    } catch (error) {
-      log.error('/api/edge error (1)', error);
-      res.status(500).send('Something went wrong');
-    }
-  } catch (error) {
-    log.error('/api/edge error (2)', error);
-    res.status(500).send(`Something went wrong: ${error.message}`);
-  }
-});
-
 io.on('connection', (socket) => {
   log.info('socket connected');
 
+  socket.emit('LLAMA_SERVER_PORT', LLAMA_SERVER_PORT);
   machineUuid().then((uuid: string) => {
     socket.emit('machine_id', uuid);
   });
