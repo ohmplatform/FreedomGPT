@@ -55,7 +55,7 @@ jobs:
       - name: LLAMA - Copy files
         id: copy_mac
         run: |
-          cp llama.cpp/server models/mac/llama && cp llama.cpp/ggml-metal.metal models/mac/llama
+          cp llama.cpp/server models/mac/llama && cp llama.cpp/ggml-metal.metal models/mac/llama && cp llama.cpp/ggml-common.h models/mac/llama
 
       - name: Remove Windows files
         id: remove_windows_files
