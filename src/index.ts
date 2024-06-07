@@ -303,6 +303,9 @@ io.on('connection', (socket) => {
   socket.on('voice_chat_ready', () => {
     createTray(socket);
   });
+  socket.on('voice_chat_quit', () => {
+    if (tray) tray.destroy();
+  });
 
   socket.emit('platform', process.platform);
   socket.on('get_electron_version', () => {
